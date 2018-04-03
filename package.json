@@ -1,0 +1,22 @@
+{
+  "name": "modelsim",
+  "version": "0.0.7",
+  "description": "Instructional simulation library for Javascript",
+  "main": "modelsim.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "instructional",
+    "simulation"
+  ],
+  "author": "Charles JOUBERT",
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-load-plugins": "^1.5.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^3.0.0"
+  }
+}
