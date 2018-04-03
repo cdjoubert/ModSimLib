@@ -1,0 +1,28 @@
+
+body {
+margin: 0px;
+padding: 0px;
+}
+
+div.table {
+    display: table;
+}
+
+#canvas {
+    display: table-cell;
+    border:2px solid blue;
+    vertical-align: top;  
+}
+
+#info {
+    display: table-cell;
+    border:2px solid red;
+    padding: 1em;
+    vertical-align: top;
+    overflow: scroll;
+}
+
+#buttons {
+    display: inline-block;
+    border:2px solid black;
+}
