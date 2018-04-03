@@ -18,7 +18,10 @@ Others:
 
 ## Getting Started
 
-See: test
+### Examples
+
+* [Basic examples of control and indicators](https://cdjoubert.github.io/ModSimLib/examples/basic.html)
+* [Photovoltaic module](https://cdjoubert.github.io/ModSimLib/examples/photovoltaic.html)
 
 ### Prerequisites
 
@@ -27,7 +30,6 @@ The following libraries are required:
 * [sprintf.js](https://github.com/alexei/sprintf.js): used to format values
 * [Flot](http://www.flotcharts.org/): for curve plotting
 * [JQuery](https://jquery.com/): used by Flot
-
 
 
 
