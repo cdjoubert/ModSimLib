@@ -26,3 +26,21 @@ div.table {
     display: inline-block;
     border:2px solid black;
 }
+
+.col{
+  float: left;
+  width: 600px;
+}
+.col + .col{
+  float: left;
+  width: 600px;
+  margin-left: 20px;
+}
+
+.carac {
+    display:inline-block;
+    width: 100%;
+    height:300px;
+    margin: 1mm 2mm;
+    border:1px solid red;
+}

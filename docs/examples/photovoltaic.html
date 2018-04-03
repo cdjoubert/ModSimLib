@@ -1,0 +1,417 @@
+<!DOCTYPE HTML>
+<html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="examples.css">
+</head>
+<body>
+
+<script language="javascript" type="text/javascript" src="lib/konva.js"></script>
+<script language="javascript" type="text/javascript" src="lib/sprintf.min.js"></script>
+
+<script language="javascript" type="text/javascript" src="https://rawgit.com/cdjoubert/ModSimLib/master/dist/modsimlib.js"></script>
+
+<script language="javascript" type="text/javascript" src="lib/jquery.min.js"></script>
+<script language="javascript" type="text/javascript" src="lib/flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="lib/jquery.flot.axislabels.js"></script>
+
+<script language="javascript" type="text/javascript" src="https://rawgit.com/cdjoubert/ModSimLib/master/dist/mgraph.js"></script>
+
+<div class="col">
+    <div id="caract_IV" class="carac"></div>
+    <div id="caract_PV" class="carac"></div>
+</div>
+<div class="col">
+    <div id="konva" style="border:2px solid blue; display:inline-block;"></div>
+    <!-- Boutons pour différents tests et positionnement des éléments  -->
+    <!--
+    <div id="buttons" style="border:2px solid red;">
+        <label><input type="checkbox" onclick='$ML.draggable_all(this.checked);'>Draggable</label>
+        <button onclick="$ML.dump_blocks(); il.dump();">Dump</button>
+        <button onclick="console.log(false);">Test</button>
+        <button onclick="btest(false);">BTest</button>
+        <label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Afficher puissances</label>
+    </div>
+    -->
+<div>
+
+<div class="explications">
+<p>
+On simule un module photovoltaïque pour lequel on peut changer la température et l'éclairement (irradiance).
+<p>
+Il est possible, en cliquant sur les interrupteurs :
+<ul>
+<li> soit de le laisser en circuit ouvert ;
+<li> soit de le connecter à une résistance dont on peut modifier la valeur ;
+<li> soit de le connecter à une batterie d'accumulateurs. On peut en régler la force électromotrice (f.é.m.) et la résistance interne (R int).
+</ul>
+À gauche, la caractéristique I=f(V) du module est tracée en rouge. La caractérisque de la charge (points précédents) est affichée en vert, et le point de fonctionnement est en bleu. La courbe qui donne la puissance en fonction de la tension est donnée en dessous.
+</div>
+    
+<script >
+
+var V = 10;
+var dt = 0.05;
+var t=0;
+
+function btest(v) {
+    console.log("TEST ");
+    am_Itot.setval(5.0);
+}
+
+
+var caract_IV = new  $GL.CarGraph("#caract_IV", {
+    xaxis:{min:0, max:25, axisLabel : 'Tension (V)', color:'black'},
+    yaxis:{min:0, max:6, axisLabel : 'Courant (A)', color:'black'},
+    legend:{show:true, position: "sw"},
+},[
+{color:"red", label:"PV Array"},
+{color:"green", label:"Ext. circuit"},
+{color:"blue", label:"pt. fonct.", points:{show:true}},
+]);
+
+var caract_PV = new  $GL.CarGraph("#caract_PV", {
+    xaxis:{min:0, max:25, axisLabel : 'Tension (V)', color:'black'},
+    yaxis:{min:0, max:160, axisLabel : 'Puissance (W)', color:'black'},
+    legend:{show:true, position: "sw"},
+},[
+{color:"red", label:"PV Array"},
+{color:"blue", label:"pt. fonct.", points:{show:true}},
+]);
+
+
+var scene = new Konva.Stage({
+container: "konva", // se réfère au DIV avec l'id "konva"
+width: 920,
+height: 400
+});
+
+var calque = new Konva.Layer({});
+$ML.set_default_layer(calque);
+
+//var il = new $ML.ImageLoader(["images/schema.png"],{},{zindex:"bottom"});
+
+
+
+var il = new $ML.ImageLoader([
+    ["images/photov_a.png", 0, 0, 0],
+],{},{ callback: function (il) {
+        calc_carac(); // pour tracer la caractéristique une fois les figures chargées
+    }
+});
+
+var am_Itot = new $ML.AnalogMeter({
+    name:"am_Itot", x:435, y:206,
+    color: "yellow", text_color:"black",
+    max:6,
+    unit: 'A',
+    format:"%4.2f",
+});
+
+var am_Vtot = new $ML.AnalogMeter({
+    name:"am_Itot", x:368, y:276,
+    color: "yellow", text_color:"black",
+    max:30,
+    unit: 'V',
+    format:"%4.1f",
+});
+
+var fm_Ptot = new $ML.FlowMeter({
+    name:"Ptot", x:352, y:358,
+    color: "red",
+    max:100,
+    format:"Ptot=%+4.0f W",
+});
+
+var sl_irradiance = new $ML.Slider({
+    name:"sl_irradiance", x:160, y:40,
+    format:'Irradiance= %4d W/m2',
+    width:200,
+    value: 1000,
+    min:0,
+    max:1000,
+    n:21,      // nombre de positions
+    color:"orange",
+    fast_callback: calc_carac,
+});
+
+var sl_temperature = new $ML.Slider({
+    name:"sl_temperature", x:160, y:120,
+    format:'Température= %2d °C',
+    width:200,
+    value: 25,
+    min:10,
+    max:90,
+    n:17,      // nombre de positions
+    color:"red",
+    fast_callback: calc_carac,
+});
+
+var sl_R = new $ML.Slider({
+    name:"sl_R", x:780, y:110,
+    format:'R= %5.2f Ω',
+    value: 25,
+    min:0.1,
+    max:100,
+    log:true,
+    n:201,      // nombre de positions
+    color:"violet",
+    fast_callback: calc_carac,
+});
+
+var sl_E = new $ML.Slider({
+    name:"sl_E", x:780, y:290,
+    format:'f.é.m= %d V',
+    value: 12,
+    min:6,
+    max:24,
+    n:19,      // nombre de positions
+    color:"blue",
+    fast_callback: calc_carac,
+});
+
+var sl_Rint = new $ML.Slider({
+    name:"sl_Rint", x:780, y:340,
+    format:'R int= %4.2f Ω',
+    value: 0,
+    min:0.001,
+    max:1,
+    n:21,      // nombre de positions
+    color:"green",
+    fast_callback: calc_carac,
+});
+
+var sw_R = new $ML.ImageSwitch({
+    x:600, y:53,
+    name:"sw_R",
+    value:true,
+    img_true:"images/sw_on.png",
+    img_false:"images/sw_off.png",
+    callback: calc_carac,
+})
+
+var sw_Batt = new $ML.ImageSwitch({
+    x:600, y:236,
+    name:"sw_Batt",
+    img_true:"images/sw_on.png",
+    img_false:"images/sw_off.png",
+    callback: calc_carac,
+})
+
+var sw_group = new $ML.SwitchGroup({exclusive:true});
+sw_group.add(sw_R);
+sw_group.add(sw_Batt);
+
+function tst_func() {
+    console.log("TTTTTTT");
+}
+
+
+
+
+/*********************** Series *************************************/
+
+/*
+ * Generate series for graphs
+ * 
+ * Permettre pour une fonction de renvoyer un vecteur, ce qui crée autant de séries de points que
+ * d'éléments dans le vecteur.
+ * Ajouter :
+ *  * lien direct avec graphiques.
+ */
+function Series (opt) {
+    this.opt = opt;
+    this.series = null;
+    this.def_opt("points", null); // Points can be fixed (vector given)
+    this.def_opt("N", 100); // Nb of points
+    this.def_opt("min", 0); // Min value for function x
+    this.def_opt("max", 100); // Max value for function x
+    this.def_opt("fct", function (x, p) {return x;}); // function to be calculated for each point with param p
+    this.def_opt("p", null); // default parameters for function call
+    this.x1 = null; // previous x and previous difference with fct2
+    this.d1 = null;
+    this.prefill();
+}
+
+Series.prototype = {
+    def_opt: function (name, default_value) {
+        /*
+        * Get element of this.opt whose name is "name"
+        * If this.opt is undefined, or does not contain "name"
+        * default_value is used instead
+        */
+        
+        if (this.opt === undefined || this.opt[name] === undefined)
+            this[name] = default_value;
+        else
+            this[name] = this.opt[name];
+    },
+    prefill: function () {
+        if (this.points == null){ // If we didn't give points in opt
+            var i;
+            this.points = [];
+            this.series = null;
+            for (i = 0 ; i < this.N ; i++) {
+                var x = this.min + (i / (this.N - 1)) * (this.max - this.min);
+                this.points.push(x); // Prefill points
+            }
+        }
+    },
+    prefill_series: function (fct, p) {
+        this.series = [];
+        var y = fct(this.points[0], p);
+        var number_of_series = (Array.isArray(y)) ? y.length : 1;
+        for (var j = 0 ; j < number_of_series ; j++) {
+            this.series[j]=[];
+            for (var i = 0 ; i < this.points.length ; i++) {
+                this.series[j][i] = [0, 0];
+            }
+        }
+    },
+    compute: function (fct, p) { // compute function on series with parameter p
+        if (fct == null && p == null){ // if we don't give anything, get the default function and parameters
+            fct = this.fct;
+            p = this.p;
+        } else if (p == null && !(fct && fct.constructor && fct.call && fct.apply)) {
+            // ( see: undescore.js / isFunction). If one parameter is given, and it is not a function => parameter
+            p =fct;
+            fct = this.fct;
+        } else if (p == null) { // fct is acually a function, but no paramterer given
+            p = this.p;
+        } // else : fct AND p are given. Nothing to do
+        if (this.series == null) { // If series not initialized yet
+            this.prefill_series(fct, p);
+        }
+        for (var i = 0 ; i < this.points.length ; i++) {
+            var x = this.points[i];
+            var y = this.fct(x, p);
+            if (Array.isArray(y)) {
+                for (var j = 0 ; j < y.length ; j++) {
+                    this.series[j][i] = [x, y[j]];
+                }
+            } else {
+                this.series[0][i] = [x, y];
+            }
+        }
+    },
+    intersect: function (s1, s2) { // detect intersections between series s1 and s2
+        var intersections =  new Array();
+        var x1, y1, d1, x2, y2, d2; // abscissa and differences
+        var x0, y0; // coordinate of intersects
+        x1 = this.points[0];
+        d1 = this.series[s1][0][1] - this.series[s2][0][1]; // difference between first values
+        for (var i = 1 ; i < this.points.length ; i++) {
+            d2 = this.series[s1][i][1] -  this.series[s2][i][1];
+            x2 = this.points[i];
+            if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) { // crossing detected
+                y1 = this.series[s1][i-1][1];
+                y2 = this.series[s1][i][1];
+                x0 = (d1*x2 - d2*x1) / (d1 - d2);
+                y0 = y1 + (x0 - x1) * (y2 - y1) / (x2 - x1);
+                intersections.push([x0, y0]);
+            }
+            x1 = x2;
+            d1 = d2;
+        }
+        return intersections;
+    },
+}
+
+
+// Modele : Simplified Model of a Photovoltaic Module
+// Armando Bellini, Stefano Bifaretti, ...
+// Data from : ET-M53685
+function calc_parameters () {
+    var T = sl_temperature.getval();
+    var Irr = sl_irradiance.getval();
+    var Voc = 21.94*(1-(T-25)*0.367/100); // Open-circuit voltage
+    var Isc = 5.29*(Irr/1000)*(1+(T-25)*0.058/100); // Short-circuit current
+    var kV = (18.05/21.94); // VMPP/Voc
+    var kI = (4.71/5.29); // IMPP/ISC
+    var C2 = (kV - 1) / Math.log(1 - kI);
+    var C1 = (1 - kI)*Math.exp(-kV / C2);
+    
+    var V0, R; // external characteristic
+    if (sw_R.getval()) {
+        V0 = 0;
+        R = sl_R.getval();
+        //extern_series = [[p_extern.V0, 0], [p_extern.V0+p_extern.R*10, 10]];
+    } else if (sw_Batt.getval()) {
+        V0 = sl_E.getval();
+        R = sl_Rint.getval();
+        //extern_series = [[p_extern.V0, 0], [p_extern.V0+p_extern.R*10, 10]];
+    } else {
+        V0 = 0;
+        R = 1e9;
+        //extern_series = [[0, 0], [100, 0]];
+    }
+    
+    var param = {
+        kV:kV,
+        kI:kI,
+        C1:C1,
+        C2:C2,
+        Isc:Isc,
+        Voc:Voc,
+        V0:V0,
+        R:R,
+        };
+    return param;
+}
+
+function calc_I(Vp, p) {
+    var Ip = p.Isc * (1 - p.C1 * (Math.exp(Vp/(p.C2*p.Voc)) - 1));
+    var Ix = (Vp - p.V0)/p.R;
+    return [Ip, Ix, Vp*Ip];
+}
+
+var p_extern = {V0:15, R:1};
+var extern_series = [[p_extern.V0, 0], [p_extern.V0+p_extern.R*10, 10]]
+
+var s_I = new Series({
+    N:100,
+    max:30,
+    fct:calc_I,
+});
+
+
+function calc_carac() {
+    var p = calc_parameters();
+    var pt_fct, pt_fct_P;
+    var Vtot, Itot;
+    s_I.compute(p);
+    
+    caract_IV.add_series(0, s_I.series[0]);
+    caract_IV.add_series(1, s_I.series[1]);
+    pt_fct = s_I.intersect(0,1)[0];
+    
+    Vtot = pt_fct[0];
+    Itot = pt_fct[1];
+    pt_fct_P = [[Vtot, Vtot*Itot]];
+
+    //console.log(s_I.crossing, Vtot, Itot);
+    
+    am_Itot.setval(Itot);
+    am_Vtot.setval(Vtot);
+    fm_Ptot.setval(Vtot * Itot);
+    
+    caract_IV.add_series(2, [pt_fct]);
+    caract_IV.update();
+    caract_PV.add_series(0, s_I.series[2]);
+    caract_PV.add_series(1, pt_fct_P);
+    caract_PV.update();
+    //console.log(s_I.crossing);
+}
+
+scene.add(calque);
+
+calc_carac();
+
+</script>
+
+
+<a href="index.html">Retour à l'index</a>
+
+</body>
+</html>
