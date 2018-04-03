@@ -37,6 +37,19 @@
 <div>
 
 <div id="info">
+<h2>English</h2>
+<p>
+A photovoltaic module is simulated. Temperature and irradiance can be changed. PV characteristic changes accordingly.
+<p>
+When clicking on the switches:
+<ul>
+<li> either put the PV module output open
+<li> or connect the module to a resistor. The value of the resistor can be adjusted with the purple slider
+<li> or connect the PV module to a battery pack. The electromotive force (e.m.f. / blue slider) and the internal resistance (green slider) can be adjusted
+</ul>
+On the left, the I=f(V) characteristic is plotted in red. The characteristic of the load is in green, and the operating point in blue. The module power is plotted below.
+
+<h2>Français</h2>
 <p>
 On simule un module photovoltaïque pour lequel on peut changer la température et l'éclairement (irradiance).
 <p>
@@ -62,13 +75,13 @@ function btest(v) {
 
 
 var caract_IV = new  $GL.CarGraph("#caract_IV", {
-    xaxis:{min:0, max:25, axisLabel : 'Tension (V)', color:'black'},
-    yaxis:{min:0, max:6, axisLabel : 'Courant (A)', color:'black'},
+    xaxis:{min:0, max:25, axisLabel : 'Voltage (V)', color:'black'},
+    yaxis:{min:0, max:6, axisLabel : 'Current (A)', color:'black'},
     legend:{show:true, position: "sw"},
 },[
 {color:"red", label:"PV Array"},
 {color:"green", label:"Ext. circuit"},
-{color:"blue", label:"pt. fonct.", points:{show:true}},
+{color:"blue", label:"Operat. point", points:{show:true}},
 ]);
 
 var caract_PV = new  $GL.CarGraph("#caract_PV", {
@@ -77,7 +90,7 @@ var caract_PV = new  $GL.CarGraph("#caract_PV", {
     legend:{show:true, position: "sw"},
 },[
 {color:"red", label:"PV Array"},
-{color:"blue", label:"pt. fonct.", points:{show:true}},
+{color:"blue", label:"Operat. point", points:{show:true}},
 ]);
 
 
@@ -138,7 +151,7 @@ var sl_irradiance = new $ML.Slider({
 
 var sl_temperature = new $ML.Slider({
     name:"sl_temperature", x:160, y:120,
-    format:'Température= %2d °C',
+    format:'Temperature= %2d °C',
     width:200,
     value: 25,
     min:10,
@@ -220,6 +233,8 @@ function tst_func() {
  * Ajouter :
  *  * lien direct avec graphiques.
  */
+ 
+ // TODO: put in a .js file 
 function Series (opt) {
     this.opt = opt;
     this.series = null;
@@ -319,7 +334,7 @@ Series.prototype = {
 }
 
 
-// Modele : Simplified Model of a Photovoltaic Module
+// Model : Simplified Model of a Photovoltaic Module
 // Armando Bellini, Stefano Bifaretti, ...
 // Data from : ET-M53685
 function calc_parameters () {
@@ -410,8 +425,7 @@ calc_carac();
 
 </script>
 
-
-<a href="../index.html">Back to home page</a>
+<a href="../index.html">Back to project page</a>
 
 </body>
 </html>
