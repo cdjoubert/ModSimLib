@@ -10,7 +10,7 @@ Indicators include:
 * Analog and digital meters (Voltmeters, Ammeters...)
 * Indicators of power/energy flow
 * Phasor diagrams
-* Indicators of current flow with moving colored dots
+* Indicators of current flow with moving colored dots. Insipred by [Paul FALSTAD circuit simulator](http://www.falstad.com/circuit/)
 * Curve plotting with [Flot](http://www.flotcharts.org/)
 
 Others:
