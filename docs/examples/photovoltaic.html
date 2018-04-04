@@ -85,8 +85,8 @@ var caract_IV = new  $GL.CarGraph("#caract_IV", {
 ]);
 
 var caract_PV = new  $GL.CarGraph("#caract_PV", {
-    xaxis:{min:0, max:25, axisLabel : 'Tension (V)', color:'black'},
-    yaxis:{min:0, max:160, axisLabel : 'Puissance (W)', color:'black'},
+    xaxis:{min:0, max:25, axisLabel : 'Voltage (V)', color:'black'},
+    yaxis:{min:0, max:160, axisLabel : 'Power (W)', color:'black'},
     legend:{show:true, position: "sw"},
 },[
 {color:"red", label:"PV Array"},
@@ -234,7 +234,8 @@ function tst_func() {
  *  * lien direct avec graphiques.
  */
  
- // TODO: put in a .js file 
+ // TODO: put in a separate .js file
+
 function Series (opt) {
     this.opt = opt;
     this.series = null;

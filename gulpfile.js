@@ -21,6 +21,9 @@ var uglify = require('gulp-uglify');
 
 var destination = './dist'; // destination
 
+// TODO: task definition is ugly
+// TODO: update package.json with all depedences
+
 gulp.task('canvas', function() {
     // Path variables
     var sources = [ './src/canvas/Main.js',
