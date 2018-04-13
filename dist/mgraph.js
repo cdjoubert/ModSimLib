@@ -31,13 +31,12 @@
  * This library make heavy use of JQuery/Flot (http://www.flotcharts.org/)
  */
 
-$GL={};
-
-(function(root) {  // Fonction anonyme qui initialise $GL
+var $GL = (function(root) {
+// Anonymous function to initialize $GL
 // "Immediately-Invoked Function Expression" (IIFE)
 
 
-function getOpts(opt_array, name, default_value) {
+root.getOpts = function (opt_array, name, default_value) {
     /*
      * Get element of opt_array whose name is "name"
      * If opt_array is undefined, or does not contain "name"
@@ -49,7 +48,7 @@ function getOpts(opt_array, name, default_value) {
         return opt_array[name];
 }
 
-function copyObjectFields(src, dst, fieldNamesArray) {
+root.copyObjectFields = function(src, dst, fieldNamesArray) {
         var obj = {};
 
         if (fieldNamesArray === null)
@@ -63,13 +62,289 @@ function copyObjectFields(src, dst, fieldNamesArray) {
         }
 }
 
-$GL={
-    copyObjectFields:copyObjectFields,
-    getOpts: getOpts,
-};
+
+
+/*********************** Series *************************************/
+
+/*
+ * Generate series for graphs
+ * 
+ * Permettre pour une fonction de renvoyer un vecteur, ce qui crée autant de séries de points que
+ * d'éléments dans le vecteur.
+ * Ajouter :
+ *  * lien direct avec graphiques.
+ */
+
+root.Series = function (opt) {
+    this.opt = opt;
+    this.series = null;
+    this.def_opt("points", null); // Points can be fixed (vector given)
+    this.def_opt("N", 100); // Nb of points
+    this.def_opt("min", 0); // Min value for function x
+    this.def_opt("max", 100); // Max value for function x
+    this.def_opt("fct", function (x, p) {return x;}); // function to be calculated for each point with param p
+    this.def_opt("p", null); // default parameters for function call
+    this.x1 = null; // previous x and previous difference with fct2
+    this.d1 = null;
+    this.prefill();
+}
+
+root.Series.prototype = {
+    def_opt: function (name, default_value) {
+        /*
+        * Get element of this.opt whose name is "name"
+        * If this.opt is undefined, or does not contain "name"
+        * default_value is used instead
+        */
+        
+        if (this.opt === undefined || this.opt[name] === undefined)
+            this[name] = default_value;
+        else
+            this[name] = this.opt[name];
+    },
+    prefill: function () {
+        if (this.points == null){ // If we didn't give points in opt
+            var i;
+            this.points = [];
+            this.series = null;
+            for (i = 0 ; i < this.N ; i++) {
+                var x = this.min + (i / (this.N - 1)) * (this.max - this.min);
+                this.points.push(x); // Prefill points
+            }
+        }
+    },
+    prefill_series: function (fct, p) {
+        this.series = [];
+        var y = fct(this.points[0], p);
+        var number_of_series = (Array.isArray(y)) ? y.length : 1;
+        for (var j = 0 ; j < number_of_series ; j++) {
+            this.series[j]=[];
+            for (var i = 0 ; i < this.points.length ; i++) {
+                this.series[j][i] = [0, 0];
+            }
+        }
+    },
+    compute: function (fct, p) { // compute function on series with parameter p
+        if (fct == null && p == null){ // if we don't give anything, get the default function and parameters
+            fct = this.fct;
+            p = this.p;
+        } else if (p == null && !(fct && fct.constructor && fct.call && fct.apply)) {
+            // ( see: undescore.js / isFunction). If one parameter is given, and it is not a function => parameter
+            p =fct;
+            fct = this.fct;
+        } else if (p == null) { // fct is acually a function, but no paramterer given
+            p = this.p;
+        } // else : fct AND p are given. Nothing to do
+        if (this.series == null) { // If series not initialized yet
+            this.prefill_series(fct, p);
+        }
+        for (var i = 0 ; i < this.points.length ; i++) {
+            var x = this.points[i];
+            var y = this.fct(x, p);
+            if (Array.isArray(y)) {
+                for (var j = 0 ; j < y.length ; j++) {
+                    this.series[j][i] = [x, y[j]];
+                }
+            } else {
+                this.series[0][i] = [x, y];
+            }
+        }
+    },
+    intersect: function (s1, s2) { // detect intersections between series s1 and s2
+        var intersections =  new Array();
+        var x1, y1, d1, x2, y2, d2; // abscissa and differences
+        var x0, y0; // coordinate of intersects
+        x1 = this.points[0];
+        d1 = this.series[s1][0][1] - this.series[s2][0][1]; // difference between first values
+        for (var i = 1 ; i < this.points.length ; i++) {
+            d2 = this.series[s1][i][1] -  this.series[s2][i][1];
+            x2 = this.points[i];
+            if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) { // crossing detected
+                y1 = this.series[s1][i-1][1];
+                y2 = this.series[s1][i][1];
+                x0 = (d1*x2 - d2*x1) / (d1 - d2);
+                y0 = y1 + (x0 - x1) * (y2 - y1) / (x2 - x1);
+                intersections.push([x0, y0]);
+            }
+            x1 = x2;
+            d1 = d2;
+        }
+        return intersections;
+    },
+}
+
+
+
+return root;
+}) ($GL || {}); // Fin de la "Immediately-Invoked Function Expression" (IIFE)
+
+
+var $GL = (function(root) {
+
+
+/*
+ * 
+ * 
+ * 
+ */
+
+root.CharacGraph = function (placeholder, config, plots){
+    this.initialized = false;
+    this.placeholder = placeholder;
+    this.plot=null;
+    this.duration = root.getOpts(config, "duration", 1);
+    this.xaxis = root.getOpts(config, "xaxis", {});
+    this.yaxis = root.getOpts(config, "yaxis", {});
+    this.legend = root.getOpts(config, "legend", {});
+    this.xmin = root.getOpts(config, "xmin", null);  // definit une serie de points suivant les abscisses : valeur min
+    this.xmax = root.getOpts(config, "xmax", null);  // valeur max
+    this.xnum = root.getOpts(config, "xnum", null);  // nombre de points
+    this.plots = plots;
+    this.series = [];
+    this.plot_options={
+    grid: {
+      borderWidth: 1,
+      minBorderMargin: 10,
+      labelMargin: 5,
+      backgroundColor: {
+        colors: ["#fff", "#e4f4f4"],
+      },
+      margin: {
+        top: 5,
+        bottom: 5,
+        left: 5
+      },
+    },
+    xaxis: this.xaxis,
+    yaxis: this.yaxis,
+    legend: this.legend,
+    };
+    this._init();
+}
+
+root.CharacGraph.prototype = {
+    _init: function() {
+        this.nplots = this.plots.length;
+        this.series = [];
+        var series = [];
+        for (var i = 0 ; i < this.nplots ; i++) {
+            var elem = {
+                lines: {fill:false},
+                points: {show:false},
+                data: [],
+            };
+            root.copyObjectFields(this.plots[i], elem, ["color", "label", "lines", "points", "data"]);
+            this.series.push(elem);
+        }
+        this.plot = $.plot(this.placeholder, this.series, this.plot_options);
+    },
+    add_series:function(i, s) {  // add a point series to graph i
+        // format : s=[ [x1, y1], [x2, y2],...]
+        this.series[i].data=s;
+    },
+    update:function() {
+        this.plot.setData(this.series);
+        this.plot.setupGrid();
+        this.plot.draw();
+    }
+}
+    
+ 
+return root;
+}) ($GL || {});
+
+
+var $GL = (function(root) {
+
+/* Dynamic graph
+ * Dynamic or Live chart that changes with time
+ * 
+ */
+    
+// See also : https://github.com/flot/flot/tree/master/examples/realtime
+    
+root.DynGraph = function(placeholder, config, plots){
+    this.initialized = false;
+    this.placeholder = placeholder;
+    this.plot=null;
+    this.duration = root.getOpts(config, "duration", 1);
+    this.yaxes = root.getOpts(config, "yaxes", [{}]);
+    this.plots = plots;
+    this.series = [];
+    this.time = 0;
+    this.plot_options={
+    grid: {
+      borderWidth: 1,
+      minBorderMargin: 10,
+      labelMargin: 5,
+      backgroundColor: {
+        colors: ["#fff", "#e4f4f4"],
+      },
+      margin: {
+        top: 5,
+        bottom: 5,
+        left: 5
+      },
+    },
+    xaxis: {
+      axisLabel : 'temps (s)',
+      color:'black',
+    },
+    yaxes:this.yaxes,
+    legend: {
+      show: true,
+      position: "nw",
+    },
+    };
+    this._init();
+}
+
+root.DynGraph.prototype = {
+    _init: function() {
+        this.nplots = this.plots.length;
+        this.series = [];
+        var series = [];
+        for (var i = 0 ; i < this.nplots ; i++) {
+            var elem = {
+                lines: {fill:false},
+                data: [],
+            };
+            root.copyObjectFields(this.plots[i], elem, ["color", "label", "yaxis"]);
+            this.series.push(elem);
+        }
+        this.plot = $.plot(this.placeholder, this.series, this.plot_options);
+    },
+    _update_x:function() {
+        // var opt = this.plot_options;
+        var opt = this.plot.getOptions();
+        opt.xaxes[0].min = this.time - this.duration;
+        opt.xaxes[0].max = this.time;
+        //opt.xaxis.max = this.time;
+        //this.plot.setupGrid();
+    },
+    add:function(delta_t, v) {
+        this.time += delta_t;
+        for (var i = 0 ; i < this.nplots ; i++) {
+            this.series[i].data.push([this.time, v[i]]);
+            while (this.series[i].data[0][0] < (this.time - this.duration)) {
+                this.series[i].data.shift(); // on élimine les valeurs trop vieilles
+            }
+        }
+        this.plot.setData(this.series);
+        this._update_x();
+        this.plot.setupGrid();
+        this.plot.draw();
+    }
+}
+ 
+return root;
+}) ($GL || {});
+
+
+var $GL = (function(root) {
 
 // Graph of sinusoidal functions
-$GL.SinGraph = function(placeholder, config){
+root.SinGraph = function(placeholder, config){
     this.placeholder = placeholder;
     this.plot=null;
     this.N = getOpts(config, "npoints", 20); // Nombre de points
@@ -127,7 +402,7 @@ $GL.SinGraph = function(placeholder, config){
     }
 }
 
-$GL.SinGraph.prototype = {
+root.SinGraph.prototype = {
     draw:function(tableau) {
         if (!this.initialized) {
             this.initialized=true;
@@ -181,143 +456,6 @@ $GL.SinGraph.prototype = {
         this.plot.draw();
     }
 }
-
-// Updating graph
-// See also : https://github.com/flot/flot/tree/master/examples/realtime
-$GL.DefGraph = function(placeholder, config, plots){
-    this.initialized = false;
-    this.placeholder = placeholder;
-    this.plot=null;
-    this.duration = $ML.getOpts(config, "duration", 1);
-    this.yaxes = $ML.getOpts(config, "yaxes", [{}]);
-    this.plots = plots;
-    this.series = [];
-    this.time = 0;
-    this.plot_options={
-    grid: {
-      borderWidth: 1,
-      minBorderMargin: 10,
-      labelMargin: 5,
-      backgroundColor: {
-        colors: ["#fff", "#e4f4f4"],
-      },
-      margin: {
-        top: 5,
-        bottom: 5,
-        left: 5
-      },
-    },
-    xaxis: {
-      axisLabel : 'temps (s)',
-      color:'black',
-    },
-    yaxes:this.yaxes,
-    legend: {
-      show: true,
-      position: "nw",
-    },
-    };
-    this._init();
-}
-
-$GL.DefGraph.prototype = {
-    _init: function() {
-        this.nplots = this.plots.length;
-        this.series = [];
-        var series = [];
-        for (var i = 0 ; i < this.nplots ; i++) {
-            var elem = {
-                lines: {fill:false},
-                data: [],
-            };
-            $GL.copyObjectFields(this.plots[i], elem, ["color", "label", "yaxis"]);
-            this.series.push(elem);
-        }
-        this.plot = $.plot(this.placeholder, this.series, this.plot_options);
-    },
-    _update_x:function() {
-        // var opt = this.plot_options;
-        var opt = this.plot.getOptions();
-        opt.xaxes[0].min = this.time - this.duration;
-        opt.xaxes[0].max = this.time;
-        //opt.xaxis.max = this.time;
-        //this.plot.setupGrid();
-    },
-    add:function(delta_t, v) {
-        this.time += delta_t;
-        for (var i = 0 ; i < this.nplots ; i++) {
-            this.series[i].data.push([this.time, v[i]]);
-            while (this.series[i].data[0][0] < (this.time - this.duration)) {
-                this.series[i].data.shift(); // on élimine les valeurs trop vieilles
-            }
-        }
-        this.plot.setData(this.series);
-        this._update_x();
-        this.plot.setupGrid();
-        this.plot.draw();
-    }
-}
-
-// Caracteristiques
-$GL.CarGraph = function (placeholder, config, plots){
-    this.initialized = false;
-    this.placeholder = placeholder;
-    this.plot=null;
-    this.duration = $GL.getOpts(config, "duration", 1);
-    this.xaxis = $GL.getOpts(config, "xaxis", {});
-    this.yaxis = $GL.getOpts(config, "yaxis", {});
-    this.legend = $GL.getOpts(config, "legend", {});
-    this.xmin = $GL.getOpts(config, "xmin", null);  // definit une serie de points suivant les abscisses : valeur min
-    this.xmax = $GL.getOpts(config, "xmax", null);  // valeur max
-    this.xnum = $GL.getOpts(config, "xnum", null);  // nombre de points
-    this.plots = plots;
-    this.series = [];
-    this.plot_options={
-    grid: {
-      borderWidth: 1,
-      minBorderMargin: 10,
-      labelMargin: 5,
-      backgroundColor: {
-        colors: ["#fff", "#e4f4f4"],
-      },
-      margin: {
-        top: 5,
-        bottom: 5,
-        left: 5
-      },
-    },
-    xaxis: this.xaxis,
-    yaxis: this.yaxis,
-    legend: this.legend,
-    };
-    this._init();
-}
-
-$GL.CarGraph.prototype = {
-    _init: function() {
-        this.nplots = this.plots.length;
-        this.series = [];
-        var series = [];
-        for (var i = 0 ; i < this.nplots ; i++) {
-            var elem = {
-                lines: {fill:false},
-                points: {show:false},
-                data: [],
-            };
-            $GL.copyObjectFields(this.plots[i], elem, ["color", "label", "lines", "points", "data"]);
-            this.series.push(elem);
-        }
-        this.plot = $.plot(this.placeholder, this.series, this.plot_options);
-    },
-    add_series:function(i, s) {  // add a point series to graph i
-        // format : s=[ [x1, y1], [x2, y2],...]
-        this.series[i].data=s;
-    },
-    update:function() {
-        this.plot.setData(this.series);
-        this.plot.setupGrid();
-        this.plot.draw();
-    }
-}
-
-}) (this); // End of the "Immediately-Invoked Function Expression" (IIFE)
+ 
+return root;
+}) ($GL || {});

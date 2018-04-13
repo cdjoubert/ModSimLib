@@ -27,12 +27,7 @@ var destination = './dist'; // destination
 gulp.task('canvas', function() {
     // Path variables
     var sources = [ './src/canvas/Main.js',
-                    './src/canvas/Arrows.js',
-                    './src/canvas/Sliders.js',
-                    './src/canvas/Meters.js',
-                    './src/canvas/Switches.js',
-                    './src/canvas/Images.js',
-                    './src/canvas/Polyline.js',
+                    './src/canvas/*.js',
     ];
     var dest_name = "modsimlib.js"
     var dest_name_min = "modsimlib.min.js"
@@ -46,7 +41,8 @@ gulp.task('canvas', function() {
 
 gulp.task('plot', function() {
     // Path variables
-    var sources = [ './src/plot/MGraph_main.js',
+    var sources = [ './src/plot/Main.js',
+                    './src/plot/*.js',
     ];    
     var dest_name = "mgraph.js"
     var dest_name_min = "mgraph.min.js"
@@ -60,7 +56,8 @@ gulp.task('plot', function() {
 
 gulp.task('simulator', function() {
     // Path variables
-    var sources = [ './src/simulator/simulator.js',
+    var sources = [ './src/simulator/Main.js',
+                            './src/plot/*.js',
     ];    
     var dest_name = "simulator.js"
     var dest_name_min = "simulator.min.js"
