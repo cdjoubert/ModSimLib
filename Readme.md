@@ -20,9 +20,9 @@ Others:
 
 ### Examples
 
-* [Basic examples of control and indicators](https://cdjoubert.github.io/ModSimLib/examples/basic.html)
-* [Simulate a photovoltaic module](https://cdjoubert.github.io/ModSimLib/examples/photovoltaic.html)
-* [Power factor correction](https://cdjoubert.github.io/ModSimLib/examples/PowerFactor.html)
+* [Basic examples of control and indicators](examples/basic.html)
+* [Simulate a photovoltaic module](examples/photovoltaic.html)
+* [Power factor correction](examples/PowerFactor.html)
 
 ### Prerequisites
 
