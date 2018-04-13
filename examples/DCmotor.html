@@ -1,0 +1,270 @@
+<!DOCTYPE HTML>
+<html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="examples.css">
+</head>
+<body>
+
+<script language="javascript" type="text/javascript" src="lib/konva.js"></script>
+<script language="javascript" type="text/javascript" src="lib/sprintf.min.js"></script>
+
+<script language="javascript" type="text/javascript" src="../dist/modsimlib.js"></script>
+
+<script language="javascript" type="text/javascript" src="lib/jquery.min.js"></script>
+<script language="javascript" type="text/javascript" src="lib/flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="lib/jquery.flot.axislabels.js"></script>
+
+<script language="javascript" type="text/javascript" src="../dist/mgraph.js"></script>
+<script language="javascript" type="text/javascript" src="../dist/simulator.js"></script>
+
+
+<div>
+    <div id="konva" style="border:2px solid blue; display:inline-block;"></div>
+    <div id="caract_meca" style="border:1px solid red; display:inline-block; width:400px; height:420px"></div>
+    <div id="flot1" style="border:1px solid red; width:400px; height:300px"></div>
+    <!-- <div id="caract_cem" style="border:1px solid red; display:inline-block; width:800px; height:400px"></div> -->
+</div>  
+
+<!-- Boutons pour différents tests et positionnement des éléments  -->
+<!--
+<div id="buttons" style="border:2px solid red;">
+    <button onclick="$ML.draggable_all(true);">Draggable</button>
+    <button onclick="$ML.draggable_all(false);">NOT Draggable</button>
+    <button onclick="$ML.dump_blocks(); il.dump();">Dump</button>
+    <button onclick="console.log(false);">Test</button>
+    <button onclick="btest(false);">BTest</button>
+    <label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Afficher puissances</label>
+</div>
+-->
+    
+<script >
+
+var V = 10;
+var dt = 0.05;
+var t=0;
+
+function btest(v) {
+    console.log("TEST ");
+    //flot1.add(0.1, [V]); V=0.8*V;
+    calc_anim(t, dt);
+    t += dt;
+}
+
+
+function show_elem(e, state) {
+    if (state)
+        e.group.show();
+    else
+        e.group.hide();
+}
+
+var flot1 = new  $GL.DynGraph("#flot1", {
+    yaxes:[{min:-2.5, max:10}, {min:-500, max:2000}],
+    duration:10,
+},[
+{color:"green", label:"current"},
+{color:"red", label:"speed", yaxis:2},
+]);
+
+var caract_meca = new  $GL.CharacGraph("#caract_meca", {
+    xaxis:{min:-5, max:15, axisLabel : 'Couple (Nm)', color:'black'},
+    yaxis:{min:-200, max:1800, axisLabel : 'Vitesse (t/min)', color:'black'},
+    legend:{show:true, position: "ne"},
+},[
+{color:"green", label:"carac. méca"},
+{color:"red", label:"pt. fonct.", points:{show:true}},
+]);
+
+
+
+
+var scene = new Konva.Stage({
+container: "konva", // se réfère au DIV avec l'id "konva"
+width: 600,
+height: 420
+});
+
+var calque = new Konva.Layer({});
+$ML.set_default_layer(calque);
+
+//var il = new $ML.ImageLoader(["images/schema.png"],{},{zindex:"bottom"});
+
+var dx = 60
+var dy = 60
+var pl_width = 202; // TODO: il y a un bug pour 200. Race condition ?
+var pl_height = 150;
+var pl = new $ML.Polyline({
+    points:[dx, dy,
+        pl_width + dx, dy,
+        pl_width + dx, pl_height + dy,
+        dx, pl_height + dy],
+    max:20,
+    min:-20,
+});
+
+function setCenterOffset(image) {
+        // See: https://github.com/konvajs/konva/issues/26
+        image.offsetX(image.width() / 2);
+        image.offsetY(image.height() / 2);
+        image.x(image.x() + image.width() / 2);
+        image.y(image.y() + image.height() / 2);
+}
+
+var il = new $ML.ImageLoader([
+    ["images/DC_motor_model.png", 30, 226, 2],
+    ["images/car2b.png", 400, 50, 1, 'r'],
+    ["images/DC_motor.png", 225, 95, 2],
+],{},{ callback: function (il) {
+        calc_carac(); // pour tracer la caractéristique une fois les figures chargées
+    }
+});
+
+function calc(v, o) {
+    pl.setval(sl_R.getval());
+}
+
+var Itot = new $ML.AnalogMeter({
+    name:"Itot", x:133, y:53,
+    color: "yellow", text_color:"black",
+    max:10,
+    unit: 'A',
+    format:"%4.1f",
+});
+
+var sl_R = new $ML.Slider({
+    name:"sl_R", x:215, y:276,
+    format:'R= %+3.1f Ω',
+    value: 1,
+    min:0.2,
+    max:5,
+    n:25,      // nombre de positions
+    color:"red",
+    fast_callback: calc_carac,
+});
+
+var sl_KPhi = new $ML.Slider({
+    name:"sl_KPhi", x:215, y:332,
+    format:'kϕ= %3.1f Vs/rd',
+    value: 1.2,
+    min:0.2,
+    max:2.4,
+    n:12,      // nombre de positions
+    color:"orange",
+    fast_callback: calc_carac,
+});
+
+var sl_V = new $ML.Slider({
+    name:"sl_V", x:17, y:131,
+    format:'V= %+3.0f V',
+    value: 0,
+    min:0,
+    max:250,
+    n:101,      // nombre de positions
+    color:"green",
+    fast_callback: calc_carac,
+});
+
+var sl_Cr = new $ML.Slider({
+    name:"sl_Cr", x:480, y:180,
+    format:'Cr= %+3.1f Nm',
+    value: 0,
+    min:-5,
+    max:15,
+    n:21,      // nombre de positions
+    color:"blue",
+    fast_callback: calc_carac,
+});
+
+var sl_Cp = new $ML.Slider({
+    name:"sl_Cp", x:290, y:388,
+    format:'Cp= %+3.1f Nm',
+    value: 0,
+    min:0,
+    max:2,
+    n:21,      // nombre de positions
+    color:"purple",
+    fast_callback: calc_carac,
+});
+
+var D_Speed = new $ML.DigitalMeter({
+    name:"D_Speed", x:300, y:193,
+    color: "red", adapt_width_for:-1000,
+    format:"N=%+4.0f t/min",
+});
+
+var D_FEM = new $ML.DigitalMeter({
+    name:"D_FEM", x:230, y:353,
+    color: "green", adapt_width_for:-1000,
+    format:"=%+5.1f V",
+});
+
+var si_wheel = new $ML.SpinningImage({
+    name:"si_wheel", x:360, y:141,
+    img: "images/wheel.png",
+    max:2000,
+    min:-2000,
+});
+
+
+
+//var a = new Simulator({}, calc_anim0);
+var a = new Simulator({X0:[0, "A"], cont_states:1}, calc_anim);
+a.start();
+
+function tst_func() {
+    console.log("TTTTTTT");
+}
+
+function calc_carac() {
+    var K = sl_KPhi.getval();
+    var R = sl_R.getval();
+    var V = sl_V.getval();
+    var Cp = sl_Cp.getval();
+    // Tracé de la caractéristique mécanique
+    var C1 = -5;
+    var C2 = 15;
+    var N1 = (30/(K*Math.PI)) * (V - R * (C1+Cp)/K);
+    var N2 = (30/(K*Math.PI)) * (V - R * (C2+Cp)/K);
+    caract_meca.add_series(0, [[C1, N1], [C2, N2]]);
+}
+
+
+function calc_anim(t, dt, args, X) {
+    var K = sl_KPhi.getval();
+    var J = 1;
+    var N = X[0];
+    var OMEG = N*Math.PI/30;
+    var R = sl_R.getval();
+    var V = sl_V.getval();
+    var Cr = sl_Cr.getval();
+    il.getKImage(1).setRotation(-Cr*30/15);
+    var Cp = sl_Cp.getval();
+    var E = K * OMEG;
+    var I = (V - E) / R;
+    var Cem = K * I;
+    var dOMEG_dt = (Cem -Cp -Cr) / J;
+    flot1.add(dt, [I, N]);
+    // Tracé de la caractéristique mécanique
+    caract_meca.add_series(1, [[Cr, N]]);
+    caract_meca.update();
+    D_Speed.setval(N);
+    D_FEM.setval(E);
+    Itot.setval(I);
+    si_wheel.setval(N);
+    pl.setval(I);
+    scene.draw();
+    return [dOMEG_dt * 30/Math.PI, "B"];
+}
+
+
+scene.add(calque);
+
+
+</script>
+
+<a href="index.html">Retour à l'index</a>
+
+</body>
+</html>
