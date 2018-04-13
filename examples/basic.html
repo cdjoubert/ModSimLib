@@ -1,0 +1,247 @@
+<!DOCTYPE HTML>
+<html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="examples.css">
+</head>
+<body>
+
+<script language="javascript" type="text/javascript" src="lib/konva.js"></script>
+<script language="javascript" type="text/javascript" src="lib/sprintf.min.js"></script>
+
+<script language="javascript" type="text/javascript" src="../dist/modsimlib.js"></script>
+
+<div class="table">
+<div id="canvas"></div>
+<div id="info">
+<h1>Test of sliders and meters (gauges)</h1>
+<h2>Sliders</h2>
+<p>Sliders can be horizontal (first 3 rows) or vertical (fourth row).
+The value is given above (or for vertical sliders, at left). It is formatted with C-like format, and the format string can include any unit. For each slider, the minimum (min) and maximum (max) values and the number of positions (n) can be specified. The initial value, if not equal to min, can be configured (row 2, and 4). A logarithmic variation can be configured (blue slider at row 3).
+<p>Callback functions can be configured to be called on slider change. There are two possible callbacks:
+<ul>
+<li> fast_callback: the function is called as soon as the slider is moved (row 1: value with yellow background)
+<li> slow_callback: the function is called only when the slider is released (row 1: value with blue background)
+</ul>
+<h2>Meters</h2>
+Several kinds of meters exist :
+<ul>
+<li>Analog meters: round shape with a red needle. (row 1, 2 and 4 right).
+<li>Digital meters: display only the value (row 1 and 3).
+<li>Low Meter: the direction of the flow is given by moving triangles. The speed and shape of these triangles depend on the value (row 2)
+</ul>
+
+</div>
+</div>  
+
+<!-- Some butons for different tests and to help place elements  -->
+<div id="buttons">
+    <button onclick="$ML.toggle_draggable(this)">Drag</button>
+    <button onclick="$ML.dump_blocks();">Dump</button>
+    <button onclick="btest(false);">BTest</button>
+</div>
+
+    
+<script >
+
+function btest(v) {
+    console.log("TEST ");
+}
+
+
+var scene = new Konva.Stage({
+container: "canvas", // reference to DIV with id = "canvas"
+width: 600,
+height: 420
+});
+
+var calque = new Konva.Layer({});
+$ML.set_default_layer(calque);
+
+// First row : linear slider / positive only
+var sl_R = new $ML.Slider({
+    name:"sl_R", x:20, y:50,
+    format:'R= %+3.1f Ω',
+    value: 1,
+    min:0,
+    max:1000,
+    n:25,      // nombre de positions
+    color:"red",
+    slow_callback: disp_R_slow,
+    fast_callback: disp_R_fast,
+});
+
+// Slow callback: called only when the slider is released
+var D_R_slow = new $ML.DigitalMeter({
+    name:"D_R_slow", x:160, y:50,
+    color: "red", adapt_width_for:+1000,
+    fill:"#ddf",
+    format:"R=%+4.1f Ω",
+});
+
+// Fast callback: called each time the slider is moved
+var D_R_fast = new $ML.DigitalMeter({
+    name:"D_R_fast", x:280, y:50,
+    color: "red", adapt_width_for:+1000,
+    fill:"yellow",
+    format:"R=%+4.1f Ω",
+});
+
+var A_R = new $ML.AnalogMeter({
+    name:"A_R", x:400, y:50,
+    color: "red", text_color:"black",
+    max:1000,
+    unit: 'Ω',
+    format:"%4.0f",
+});
+
+function disp_R_slow() {
+    var R = sl_R.getval();
+    D_R_slow.setval(R);
+}
+
+function disp_R_fast() {
+    var R = sl_R.getval();
+    D_R_fast.setval(R);
+    A_R.setval(R);
+}
+
+// Second row : Linear slider / negative and positive with a flow meter
+
+var F_P = new $ML.FlowMeter({
+    name:"F_P", x:160, y:100,
+    color: "green",
+    min: -2000,
+    max: 2000,
+    format:"Ptot=%+4.0f W",
+});
+
+var sl_P = new $ML.Slider({
+    name:"sl_P", x:20, y:100,
+    format:'P= %+4.0f W',
+    value: 0,
+    min: -2000,
+    max: 2000,
+    n:25,      // number of positions
+    color:"green",
+    fast_callback: disp_P,
+});
+
+var A_P = new $ML.AnalogMeter({
+    name:"A_P", x:400, y:120,
+    color: "green", text_color:"black",
+    min: -2000,
+    max: +2000,
+    value: 0,
+    unit: 'W',
+    format:"%+4.0f",
+});
+
+function disp_P() {
+    F_P.setval(sl_P.getval());
+    A_P.setval(sl_P.getval());
+}
+
+// Third row : Logarithmic slider
+
+
+var sl_log_F = new $ML.Slider({
+    name:"sl_log_F", x:20, y:150,
+    format:'f=%7.2f Hz',
+    min: 1,
+    max: 10000,
+    log: true,
+    n:25,      // number of positions
+    color:"blue",
+    // inline call of callback function
+    fast_callback: function () {D_log_f.setval(sl_log_F.getval())},
+});
+
+var D_log_f = new $ML.DigitalMeter({
+    name:"D_log_f", x:160, y:150,
+    color: "blue", adapt_width_for:+100,
+    format:"f=%7.2f Hz",
+});
+
+// Fourth row (left) : Vertical slider and Spinning image (Wind turbine)
+
+var sl_N = new $ML.VSlider({
+    name:"sl_N", x:25, y:310,
+    format:'N=%+2d rpm',
+    value: 0,
+    min: -60,
+    max: +60,
+    n:25,
+    color:"black",
+    // inline call of callback function
+    fast_callback: function () {si_turbine.setval(sl_N.getval())},
+});
+
+var si_turbine = new $ML.SpinningImage({
+    name:"si_turbine", x:150, y:260,
+    img: "images/wind_turbine0.png",
+    min:-60,
+    max:+60,
+    value:0,
+});
+
+
+// Fourth row (right) : Vertical slider, (static) mage and polyline
+
+var sl_I = new $ML.VSlider({
+    name:"sl_I", x:300, y:310,
+    format:'I=%+4.1f A',
+    value: 0,
+    min: -5,
+    max: +5,
+    n:21,
+    color:"purple",
+    // inline call of callback function
+    fast_callback: function () {pl.setval(sl_I.getval()); A_I.setval(sl_I.getval());},
+});
+
+var il = new $ML.ImageLoader([
+    ["images/source_and_resistor.png", 350, 240, 100],
+],{},{ callback: function (il) {
+        // This function is called when all images are loaded
+    }
+});
+
+
+var dx = 370; // Base coordinates of the polyline 
+var dy = 230;
+var pl_width = 90; // TODO: there is a bug for 200. Race condition ?
+var pl_height = 75;
+var pl = new $ML.Polyline({
+    points:[
+        dx, dy+pl_height/2,
+        dx, dy,
+        pl_width + dx, dy,
+        pl_width + dx, pl_height + dy,
+        dx, pl_height + dy,
+        dx, dy+pl_height/2
+        ],
+    max:5,
+    min:-5,
+});
+
+var A_I = new $ML.AnalogMeter({
+    name:"A_I", x:420, y:219,
+    color: "purple", text_color:"white",
+    min: -6,
+    max: +6,
+    value:0,
+    unit: 'A',
+    format:"%+5.1f",
+});
+
+scene.add(calque);
+
+
+</script>
+
+<a href="../index.html">Back to project page</a>
+
+</body>
+</html>

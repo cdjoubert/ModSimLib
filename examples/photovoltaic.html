@@ -1,0 +1,320 @@
+<!DOCTYPE HTML>
+<html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="examples.css">
+</head>
+<body>
+
+<script language="javascript" type="text/javascript" src="lib/konva.js"></script>
+<script language="javascript" type="text/javascript" src="lib/sprintf.min.js"></script>
+
+<script language="javascript" type="text/javascript" src="../dist/modsimlib.js"></script>
+
+<script language="javascript" type="text/javascript" src="lib/jquery.min.js"></script>
+<script language="javascript" type="text/javascript" src="lib/flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="lib/jquery.flot.axislabels.js"></script>
+
+<script language="javascript" type="text/javascript" src="../dist/mgraph.js"></script>
+
+<div class="col">
+    <div id="caract_IV" class="carac"></div>
+    <div id="caract_PV" class="carac"></div>
+</div>
+<div class="col">
+    <div id="konva" style="border:2px solid blue; display:inline-block;"></div>
+    <!-- Boutons pour différents tests et positionnement des éléments  -->
+    <!--
+    <div id="buttons" style="border:2px solid red;">
+        <label><input type="checkbox" onclick='$ML.draggable_all(this.checked);'>Draggable</label>
+        <button onclick="$ML.dump_blocks(); il.dump();">Dump</button>
+        <button onclick="console.log(false);">Test</button>
+        <button onclick="btest(false);">BTest</button>
+        <label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Afficher puissances</label>
+    </div>
+    -->
+<div>
+
+<div id="info">
+<h2>English</h2>
+<p>
+A photovoltaic module is simulated. Temperature and irradiance can be changed. PV characteristic changes accordingly.
+<p>
+When clicking on the switches:
+<ul>
+<li> either put the PV module output open
+<li> or connect the module to a resistor. The value of the resistor can be adjusted with the purple slider
+<li> or connect the PV module to a battery pack. The electromotive force (e.m.f. / blue slider) and the internal resistance (green slider) can be adjusted
+</ul>
+On the left, the I=f(V) characteristic is plotted in red. The characteristic of the load is in green, and the operating point in blue. The module power is plotted below.
+
+<h2>Français</h2>
+<p>
+On simule un module photovoltaïque pour lequel on peut changer la température et l'éclairement (irradiance).
+<p>
+Il est possible, en cliquant sur les interrupteurs :
+<ul>
+<li> soit de le laisser en circuit ouvert ;
+<li> soit de le connecter à une résistance dont on peut modifier la valeur ;
+<li> soit de le connecter à une batterie d'accumulateurs. On peut en régler la force électromotrice (f.é.m.) et la résistance interne (R int).
+</ul>
+À gauche, la caractéristique I=f(V) du module est tracée en rouge. La caractérisque de la charge (points précédents) est affichée en vert, et le point de fonctionnement est en bleu. La courbe qui donne la puissance en fonction de la tension est donnée en dessous.
+</div>
+    
+<script >
+
+var V = 10;
+var dt = 0.05;
+var t=0;
+
+function btest(v) {
+    console.log("TEST ");
+    am_Itot.setval(5.0);
+}
+
+
+var caract_IV = new  $GL.CharacGraph("#caract_IV", {
+    xaxis:{min:0, max:25, axisLabel : 'Voltage (V)', color:'black'},
+    yaxis:{min:0, max:6, axisLabel : 'Current (A)', color:'black'},
+    legend:{show:true, position: "sw"},
+},[
+{color:"red", label:"PV Array"},
+{color:"green", label:"Ext. circuit"},
+{color:"blue", label:"Operat. point", points:{show:true}},
+]);
+
+var caract_PV = new  $GL.CharacGraph("#caract_PV", {
+    xaxis:{min:0, max:25, axisLabel : 'Voltage (V)', color:'black'},
+    yaxis:{min:0, max:160, axisLabel : 'Power (W)', color:'black'},
+    legend:{show:true, position: "sw"},
+},[
+{color:"red", label:"PV Array"},
+{color:"blue", label:"Operat. point", points:{show:true}},
+]);
+
+
+var scene = new Konva.Stage({
+container: "konva", // se réfère au DIV avec l'id "konva"
+width: 920,
+height: 400
+});
+
+var calque = new Konva.Layer({});
+$ML.set_default_layer(calque);
+
+//var il = new $ML.ImageLoader(["images/schema.png"],{},{zindex:"bottom"});
+
+
+
+var il = new $ML.ImageLoader([
+    ["images/photov_a.png", 0, 0, 0],
+],{},{ callback: function (il) {
+        calc_carac(); // pour tracer la caractéristique une fois les figures chargées
+    }
+});
+
+var am_Itot = new $ML.AnalogMeter({
+    name:"am_Itot", x:435, y:206,
+    color: "yellow", text_color:"black",
+    max:6,
+    unit: 'A',
+    format:"%4.2f",
+});
+
+var am_Vtot = new $ML.AnalogMeter({
+    name:"am_Itot", x:368, y:276,
+    color: "yellow", text_color:"black",
+    max:30,
+    unit: 'V',
+    format:"%4.1f",
+});
+
+var fm_Ptot = new $ML.FlowMeter({
+    name:"Ptot", x:352, y:358,
+    color: "red",
+    max:100,
+    format:"Ptot=%+4.0f W",
+});
+
+var sl_irradiance = new $ML.Slider({
+    name:"sl_irradiance", x:160, y:40,
+    format:'Irradiance= %4d W/m2',
+    width:200,
+    value: 1000,
+    min:0,
+    max:1000,
+    n:21,      // nombre de positions
+    color:"orange",
+    fast_callback: calc_carac,
+});
+
+var sl_temperature = new $ML.Slider({
+    name:"sl_temperature", x:160, y:120,
+    format:'Temperature= %2d °C',
+    width:200,
+    value: 25,
+    min:10,
+    max:90,
+    n:17,      // nombre de positions
+    color:"red",
+    fast_callback: calc_carac,
+});
+
+var sl_R = new $ML.Slider({
+    name:"sl_R", x:780, y:110,
+    format:'R= %5.2f Ω',
+    value: 25,
+    min:0.1,
+    max:100,
+    log:true,
+    n:201,      // nombre de positions
+    color:"violet",
+    fast_callback: calc_carac,
+});
+
+var sl_E = new $ML.Slider({
+    name:"sl_E", x:780, y:290,
+    format:'f.é.m= %d V',
+    value: 12,
+    min:6,
+    max:24,
+    n:19,      // nombre de positions
+    color:"blue",
+    fast_callback: calc_carac,
+});
+
+var sl_Rint = new $ML.Slider({
+    name:"sl_Rint", x:780, y:340,
+    format:'R int= %4.2f Ω',
+    value: 0,
+    min:0.001,
+    max:1,
+    n:21,      // nombre de positions
+    color:"green",
+    fast_callback: calc_carac,
+});
+
+var sw_R = new $ML.ImageSwitch({
+    x:600, y:53,
+    name:"sw_R",
+    value:true,
+    img_true:"images/sw_on.png",
+    img_false:"images/sw_off.png",
+    callback: calc_carac,
+})
+
+var sw_Batt = new $ML.ImageSwitch({
+    x:600, y:236,
+    name:"sw_Batt",
+    img_true:"images/sw_on.png",
+    img_false:"images/sw_off.png",
+    callback: calc_carac,
+})
+
+var sw_group = new $ML.SwitchGroup({exclusive:true});
+sw_group.add(sw_R);
+sw_group.add(sw_Batt);
+
+function tst_func() {
+    console.log("TTTTTTT");
+}
+
+
+
+
+// Model : Simplified Model of a Photovoltaic Module
+// Armando Bellini, Stefano Bifaretti, ...
+// Data from : ET-M53685
+function calc_parameters () {
+    var T = sl_temperature.getval();
+    var Irr = sl_irradiance.getval();
+    var Voc = 21.94*(1-(T-25)*0.367/100); // Open-circuit voltage
+    var Isc = 5.29*(Irr/1000)*(1+(T-25)*0.058/100); // Short-circuit current
+    var kV = (18.05/21.94); // VMPP/Voc
+    var kI = (4.71/5.29); // IMPP/ISC
+    var C2 = (kV - 1) / Math.log(1 - kI);
+    var C1 = (1 - kI)*Math.exp(-kV / C2);
+    
+    var V0, R; // external characteristic
+    if (sw_R.getval()) {
+        V0 = 0;
+        R = sl_R.getval();
+        //extern_series = [[p_extern.V0, 0], [p_extern.V0+p_extern.R*10, 10]];
+    } else if (sw_Batt.getval()) {
+        V0 = sl_E.getval();
+        R = sl_Rint.getval();
+        //extern_series = [[p_extern.V0, 0], [p_extern.V0+p_extern.R*10, 10]];
+    } else {
+        V0 = 0;
+        R = 1e9;
+        //extern_series = [[0, 0], [100, 0]];
+    }
+    
+    var param = {
+        kV:kV,
+        kI:kI,
+        C1:C1,
+        C2:C2,
+        Isc:Isc,
+        Voc:Voc,
+        V0:V0,
+        R:R,
+        };
+    return param;
+}
+
+function calc_I(Vp, p) {
+    var Ip = p.Isc * (1 - p.C1 * (Math.exp(Vp/(p.C2*p.Voc)) - 1));
+    var Ix = (Vp - p.V0)/p.R;
+    return [Ip, Ix, Vp*Ip];
+}
+
+var p_extern = {V0:15, R:1};
+var extern_series = [[p_extern.V0, 0], [p_extern.V0+p_extern.R*10, 10]]
+
+var s_I = new $GL.Series({
+    N:100,
+    max:30,
+    fct:calc_I,
+});
+
+
+function calc_carac() {
+    var p = calc_parameters();
+    var pt_fct, pt_fct_P;
+    var Vtot, Itot;
+    s_I.compute(p);
+    
+    caract_IV.add_series(0, s_I.series[0]);
+    caract_IV.add_series(1, s_I.series[1]);
+    pt_fct = s_I.intersect(0,1)[0];
+    
+    Vtot = pt_fct[0];
+    Itot = pt_fct[1];
+    pt_fct_P = [[Vtot, Vtot*Itot]];
+
+    //console.log(s_I.crossing, Vtot, Itot);
+    
+    am_Itot.setval(Itot);
+    am_Vtot.setval(Vtot);
+    fm_Ptot.setval(Vtot * Itot);
+    
+    caract_IV.add_series(2, [pt_fct]);
+    caract_IV.update();
+    caract_PV.add_series(0, s_I.series[2]);
+    caract_PV.add_series(1, pt_fct_P);
+    caract_PV.update();
+    //console.log(s_I.crossing);
+}
+
+scene.add(calque);
+
+calc_carac();
+
+</script>
+
+<a href="../index.html">Back to project page</a>
+
+</body>
+</html>
