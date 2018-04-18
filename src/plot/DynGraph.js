@@ -33,7 +33,7 @@ root.DynGraph = function(placeholder, config, plots){
       },
     },
     xaxis: {
-      axisLabel : 'temps (s)',
+      axisLabel : 'time (s)',
       color:'black',
     },
     yaxes:this.yaxes,

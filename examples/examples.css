@@ -4,22 +4,30 @@ margin: 0px;
 padding: 0px;
 }
 
-div.table {
+.table {
     display: table;
 }
 
-#canvas {
+.table div {
     display: table-cell;
+}
+
+.trow {
+    display: table-row;
+}
+
+#canvas {
+    /* display: table-cell; */
     border:2px solid blue;
     vertical-align: top;  
 }
 
 #info {
-    display: table-cell;
     border:2px solid red;
     padding: 1em;
     vertical-align: top;
-    overflow: scroll;
+    overflow-y: scroll;
+    max-height: 800px;
 }
 
 #buttons {
@@ -38,9 +46,25 @@ div.table {
 }
 
 .carac {
-    display:inline-block;
-    width: 100%;
+    box-sizing: border-box;
+    width: 600px;
     height:300px;
     margin: 1mm 2mm;
     border:1px solid red;
+}
+
+.row {
+    display: block;
+    position: relative;
+}
+
+.row div {
+        display: inline-block;
+        vertical-align: top;
+}
+
+.cell {
+    display: table-cell;
+    box-sizing: border-box;
+    vertical-align: top;
 }

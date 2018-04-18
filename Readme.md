@@ -1,6 +1,7 @@
 # ModSimLib
 
-ModSimLib is a Javascript framework that can be used to build simple user interfaces with controls, indicators and diagrams. The aim is to facilitate the representation of physical and technical systems, especially in the field of electrical engineering.
+ModSimLib is a Javascript framework that can be used to build, for educational purposes, simple user interfaces with controls, indicators and diagrams.
+The aim is to facilitate the representation of physical and technical systems, particularly in the field of electrical engineering.
 
 Controls include:
 * Sliders
@@ -23,6 +24,7 @@ Others:
 * [Basic examples of control and indicators](examples/basic.html)
 * [Simulate a photovoltaic module](examples/photovoltaic.html)
 * [Power factor correction](examples/PowerFactor.html)
+* [DC motor in an electric vehicule](examples/DCmotor.html)
 
 ### Prerequisites
 

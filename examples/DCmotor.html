@@ -20,37 +20,44 @@
 <script language="javascript" type="text/javascript" src="../dist/simulator.js"></script>
 
 
-<div>
-    <div id="konva" style="border:2px solid blue; display:inline-block;"></div>
-    <div id="caract_meca" style="border:1px solid red; display:inline-block; width:400px; height:420px"></div>
-    <div id="flot1" style="border:1px solid red; width:400px; height:300px"></div>
-    <!-- <div id="caract_cem" style="border:1px solid red; display:inline-block; width:800px; height:400px"></div> -->
-</div>  
-
-<!-- Boutons pour différents tests et positionnement des éléments  -->
-<!--
-<div id="buttons" style="border:2px solid red;">
-    <button onclick="$ML.draggable_all(true);">Draggable</button>
-    <button onclick="$ML.draggable_all(false);">NOT Draggable</button>
-    <button onclick="$ML.dump_blocks(); il.dump();">Dump</button>
-    <button onclick="console.log(false);">Test</button>
-    <button onclick="btest(false);">BTest</button>
-    <label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Afficher puissances</label>
+<div class='trow'>
+    <div class="cell"> <div id="konva" style="border:2px solid blue; "></div> </div>
+    <div id="caract_meca" style="border:1px solid red; width:400px; height:420px"></div>
 </div>
--->
+
+<div class='trow'>
+<div id="flot1" style="border:1px solid red; width:600px; height:300px"></div>
+<div id="info" class="cell" style="height:300px;">
+<h2>English</h2>
+Simulation of an electric car, with a DC motor.
+<ul>
+<li> V (green slider) is te applied voltage.
+<li> T (blue slider) is the load torque. It depends upon the slope the vehicule must climb. 
+<li> Tp (purple slider) is the internal friction torque of the DC motor.
+<li> R (red slider) is the internal resistance of the motor.
+<li> kϕ (orange slider) is the motor velocity constant.
+</ul>
+
+<h2>Français</h2>
+Simulation d'un moteur à couran continu entraînant un véhicule.
+<ul>
+<li> V (vert) est la tension appliquée au moteur.
+<li> T (bleu) est le couple résistant. Il dépend de la pente que doit gravir le moteur.
+<li> Tp (violet) est le couple de frottements secs interne au moteur.
+<li> R (rouge) est la résistance interne du moteur.
+<li> kϕ (orange) est la constante de force électromotrice (fém).
+</ul>
+
+</div> <!-- info -->
+</div> <!-- cell -->
+
+
     
 <script >
 
 var V = 10;
 var dt = 0.05;
 var t=0;
-
-function btest(v) {
-    console.log("TEST ");
-    //flot1.add(0.1, [V]); V=0.8*V;
-    calc_anim(t, dt);
-    t += dt;
-}
 
 
 function show_elem(e, state) {
@@ -69,12 +76,12 @@ var flot1 = new  $GL.DynGraph("#flot1", {
 ]);
 
 var caract_meca = new  $GL.CharacGraph("#caract_meca", {
-    xaxis:{min:-5, max:15, axisLabel : 'Couple (Nm)', color:'black'},
-    yaxis:{min:-200, max:1800, axisLabel : 'Vitesse (t/min)', color:'black'},
+    xaxis:{min:-5, max:15, axisLabel : 'Torque (Nm)', color:'black'},
+    yaxis:{min:-200, max:1800, axisLabel : 'Speed (rpm)', color:'black'},
     legend:{show:true, position: "ne"},
 },[
-{color:"green", label:"carac. méca"},
-{color:"red", label:"pt. fonct.", points:{show:true}},
+{color:"green", label:"Mech. Carcteristics"},
+{color:"red", label:"Oper. Point", points:{show:true}},
 ]);
 
 
@@ -168,7 +175,7 @@ var sl_V = new $ML.Slider({
 
 var sl_Cr = new $ML.Slider({
     name:"sl_Cr", x:480, y:180,
-    format:'Cr= %+3.1f Nm',
+    format:'T= %+3.1f Nm',
     value: 0,
     min:-5,
     max:15,
@@ -179,7 +186,7 @@ var sl_Cr = new $ML.Slider({
 
 var sl_Cp = new $ML.Slider({
     name:"sl_Cp", x:290, y:388,
-    format:'Cp= %+3.1f Nm',
+    format:'Tp= %+3.1f Nm',
     value: 0,
     min:0,
     max:2,
@@ -213,9 +220,6 @@ var si_wheel = new $ML.SpinningImage({
 var a = new Simulator({X0:[0, "A"], cont_states:1}, calc_anim);
 a.start();
 
-function tst_func() {
-    console.log("TTTTTTT");
-}
 
 function calc_carac() {
     var K = sl_KPhi.getval();

@@ -18,9 +18,13 @@
 
 <script language="javascript" type="text/javascript" src="../dist/mgraph.js"></script>
 
-<div class="table">
-<div id="canvas" style="border:2px solid blue;"></div>
 
+<div class="cell">
+<div id="canvas"></div>
+<label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Show power flows</label>
+</div> <!-- cell -->
+
+<div class="cell">
 <div id="info">
 <h1>Power factor correction / correction du facteur de puissance</h1>
 <h2>English</h2>
@@ -45,18 +49,11 @@ Le circuit représenté ci-contre comprend trois charges en parallèle :
 Le courant résultant est représenté en noir, et la tension en violet.
 A gauche, un diagramme de Fresnel évolue en fonction des valeurs des différents courants.
 Quand la case "Show power flows" est cochée, les sens de transfert des puissances active (rouge) et réactive (vert) sont ajoutés.
-
+<a href="../index.html">Back to project page</a>
 </div> <!-- info -->
+</div> <!-- cell -->
 
-</div> <!-- table -->
 
-<div id="buttons" style="border:2px solid red;">
-<!-- Buttons for tests and precise positionning  -->
-    <button onclick="$ML.toggle_draggable(this)">Drag</button>
-    <button onclick="$ML.dump_blocks();">Dump</button>
-</div>
-    <label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Show power flows</label>
-</div>
     
 
 
@@ -348,7 +345,7 @@ scene.add(calque);
 
 </script>
 
-<a href="../index.html">Back to project page</a>
+
 
 </body>
 </html>

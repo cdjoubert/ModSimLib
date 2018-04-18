@@ -12,8 +12,17 @@
 
 <script language="javascript" type="text/javascript" src="../dist/modsimlib.js"></script>
 
-<div class="table">
+
+<div class="cell">
 <div id="canvas"></div>
+<!-- Some butons for different tests and to help place elements  -->
+<div id="buttons">
+    <button onclick="$ML.toggle_draggable(this)">Drag</button>
+    <button onclick="$ML.dump_blocks();">Dump</button>
+</div>
+</div> <!-- cell -->
+
+<div class="cell">
 <div id="info">
 <h1>Test of sliders and meters (gauges)</h1>
 <h2>Sliders</h2>
@@ -31,24 +40,14 @@ Several kinds of meters exist :
 <li>Digital meters: display only the value (row 1 and 3).
 <li>Low Meter: the direction of the flow is given by moving triangles. The speed and shape of these triangles depend on the value (row 2)
 </ul>
+<a href="../index.html">Back to project page</a>
+</div>  <!-- info -->
+</div> <!-- cell -->
 
-</div>
-</div>  
 
-<!-- Some butons for different tests and to help place elements  -->
-<div id="buttons">
-    <button onclick="$ML.toggle_draggable(this)">Drag</button>
-    <button onclick="$ML.dump_blocks();">Dump</button>
-    <button onclick="btest(false);">BTest</button>
-</div>
 
     
 <script >
-
-function btest(v) {
-    console.log("TEST ");
-}
-
 
 var scene = new Konva.Stage({
 container: "canvas", // reference to DIV with id = "canvas"
@@ -240,8 +239,6 @@ scene.add(calque);
 
 
 </script>
-
-<a href="../index.html">Back to project page</a>
 
 </body>
 </html>

@@ -18,25 +18,13 @@
 
 <script language="javascript" type="text/javascript" src="../dist/mgraph.js"></script>
 
-<div class="col">
+<div class="cell">
     <div id="caract_IV" class="carac"></div>
     <div id="caract_PV" class="carac"></div>
 </div>
-<div class="col">
-    <div id="konva" style="border:2px solid blue; display:inline-block;"></div>
-    <!-- Boutons pour différents tests et positionnement des éléments  -->
-    <!--
-    <div id="buttons" style="border:2px solid red;">
-        <label><input type="checkbox" onclick='$ML.draggable_all(this.checked);'>Draggable</label>
-        <button onclick="$ML.dump_blocks(); il.dump();">Dump</button>
-        <button onclick="console.log(false);">Test</button>
-        <button onclick="btest(false);">BTest</button>
-        <label><input type="checkbox" id="show_pow" onclick='show_power(this.checked);'>Afficher puissances</label>
-    </div>
-    -->
-<div>
-
-<div id="info">
+<div class="cell">
+    <div id="konva" style="border:2px solid blue; display:inline-block; vertical-align:top;"></div>
+<div id="info" style="width: calc(920px - 32px); max-height:calc(100vh - 450px);">
 <h2>English</h2>
 <p>
 A photovoltaic module is simulated. Temperature and irradiance can be changed. PV characteristic changes accordingly.
@@ -60,19 +48,18 @@ Il est possible, en cliquant sur les interrupteurs :
 <li> soit de le connecter à une batterie d'accumulateurs. On peut en régler la force électromotrice (f.é.m.) et la résistance interne (R int).
 </ul>
 À gauche, la caractéristique I=f(V) du module est tracée en rouge. La caractérisque de la charge (points précédents) est affichée en vert, et le point de fonctionnement est en bleu. La courbe qui donne la puissance en fonction de la tension est donnée en dessous.
+</p>
+<a href="../index.html">Back to project page</a>
 </div>
+
+<div> <!-- cell -->
+
     
 <script >
 
 var V = 10;
 var dt = 0.05;
 var t=0;
-
-function btest(v) {
-    console.log("TEST ");
-    am_Itot.setval(5.0);
-}
-
 
 var caract_IV = new  $GL.CharacGraph("#caract_IV", {
     xaxis:{min:0, max:25, axisLabel : 'Voltage (V)', color:'black'},
@@ -314,7 +301,7 @@ calc_carac();
 
 </script>
 
-<a href="../index.html">Back to project page</a>
+
 
 </body>
 </html>
