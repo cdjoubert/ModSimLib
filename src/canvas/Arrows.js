@@ -4,6 +4,16 @@
 
 var $ML = (function(root) {
 
+function normalize(angle) { // make sure -180°<angle<=+180° 
+    while (angle > 180.0) {
+        angle -= 360.0;
+    }
+    while (angle <= -180.0) {
+        angle += 360.0;
+    }
+    return angle;
+}   
+
 root.Arrow = function (config) {
     this._register(config, "Arrow", [], []);
 } 
@@ -39,7 +49,7 @@ root.Arrow.prototype = root._block_xtend({
         this.setPoints(x0,y0,x1,y1);
     },
     reverseY: true, // Inverse les coordonnées en Y pour ressembler à un repère normal
-    setPoints: function(x0,y0,x1,y1) {
+    setPoints: function(x0,y0,x1,y1) { // TODO: change CamelCase to snake_case
         this.x0 = x0;
         this.y0 = y0;
         this.x1 = x1;
@@ -71,6 +81,12 @@ root.Arrow.prototype = root._block_xtend({
             this.head.setRotation(a);
         }
     },
+    set_origin: function(x, y) { // Sets the origin of the arrow
+        this.setPoints(x, y, this.x1, this.y1); // TODO: change to snake_case
+    },
+    set_destination: function(x, y) {  // Sets the destination of the arrow
+        this.setPoints(this.x0, this.y0, x, y);
+    },
     translate_to: function(pos) {
         if (typeof pos.block_class != "undefined" && pos.block_class == "Arrow") {
             var x = pos.x1; // on récupère l'extrémité de l'autre fleche
@@ -86,7 +102,7 @@ root.Arrow.prototype = root._block_xtend({
     get_angle:function() {
         var dx = this.x1 - this.x0;
         var dy = this.y1 - this.y0;
-        if (! this.is_not_visible) { // La fleche est-elle visible ?
+        if (! this.is_not_visible && ! isNaN(dx) && ! isNaN(dy)) { // La fleche est-elle visible ? 
             var a = (180/Math.PI)*Math.atan2(dy, dx);
             this.angle = a;
         } else {
@@ -100,7 +116,7 @@ root.Arrow.prototype = root._block_xtend({
         return Math.sqrt(dx*dx + dy*dy);
     },
     set_angle:function(angle) {
-        this.angle = angle;
+        this.angle = normalize(angle);
         angle *= (Math.PI/180);
         var l = this.get_length();
         var x1 = this.x0 + l*Math.cos(angle);
@@ -168,14 +184,14 @@ root.ArcArrow.prototype = root._block_xtend({
     setAll: function (x0,y0,startAngle,endAngle,radius) {
         this.x0=x0;
         this.y0=y0;
-        this.startAngle = startAngle;
-        this.endAngle = endAngle;
+        this.startAngle = normalize(startAngle);
+        this.endAngle = normalize(endAngle);
         this.radius = radius;
         this.calc();
     },
     setAngles: function (startAngle,endAngle) {
-        this.startAngle = startAngle;
-        this.endAngle = endAngle;
+        this.startAngle = normalize(startAngle);
+        this.endAngle = normalize(endAngle);
         this.calc();
     },
     setRadius: function (radius) {
