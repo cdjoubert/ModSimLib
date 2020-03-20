@@ -192,7 +192,7 @@ var $GL = (function(root) {
  * 
  */
 
-root.CharacGraph = function (placeholder, config, plots){
+root.CarGraph = function (placeholder, config, plots){
     this.initialized = false;
     this.placeholder = placeholder;
     this.plot=null;
@@ -224,7 +224,7 @@ root.CharacGraph = function (placeholder, config, plots){
     this._init();
 }
 
-root.CharacGraph.prototype = {
+root.CarGraph.prototype = {
     _init: function() {
         this.nplots = this.plots.length;
         this.series = [];
