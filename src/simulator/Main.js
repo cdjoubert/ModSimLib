@@ -89,12 +89,16 @@ function Simulator(config, callback) {
     this.prev_X = []; // previous state vector
     this.cont_states = this.getOpts(config, "cont_states", this.X.length);  // Number of continuous states
     this.t = 0;
+    this.output = null;     // Possible to set this with result inside callback func.
+    this.outputs = [];  // List of outputs (for use with compute_n)
+    this.times = []; // List of times 
     this.time_ms = Date.now();
     this.prev_time_ms = Date.now();
     this.interval = null;
     this._replace_vect = false;  // replace state vector with :
     this._next_vect = [];
     this._next_vect_idx = [];
+    this._use_real_time = false; // Calculate dt from real elapsed time
 }
 
 Simulator.prototype = {
@@ -109,7 +113,39 @@ Simulator.prototype = {
         else
             return opt_array[name];
     },
+    reset: function (X0) {  // resets the simulator (state vector)
+        this.X = X0;
+        this.t = 0;
+    },
+    // Compute n times then stops
+    // if return_outputs is boolean and true => retun all "output" into this.outputs
+    // else return states
+    compute_n: function(n, return_outputs, delta_t) {
+        var i;
+        var outputs = new Array(n);
+        if (delta_t !== undefined) {
+            this.delta_t_ms = delta_t;
+            this.delta_t = this.delta_t_ms * 1e-3 * this.speed_factor;
+        }
+        if (this.times.length != n) { // initialize this.times if needed
+            this.times = new Array(n);
+            for (i=0 ; i<n ; i++) {
+                this.times = 0;
+            }
+        }
+        for (i=0 ; i<n ; i++) {
+            this.next();
+            this.times[i] = this.t;
+            if (!return_outputs) { // Return states
+                outputs[i] = this.X.slice(); // slice for shallow copy
+            } else  { // return outputs (from this.output)
+                outputs[i] = this.output.slice(); // slice for shallow copy
+            }
+        }
+        return outputs;
+    },
     start: function() {
+        this.times = [];
         if (this.interval === null) {
             var self = this;
             this.interval = window.setInterval(
@@ -122,7 +158,7 @@ Simulator.prototype = {
         window.clearInterval(this.interval);
         this.interval = null;
     },
-     running: function(state) {  // Name changed 14/03/2020 (before : set_state)
+     running: function(state) {  // Nom changé le 14/03/2020 (avant : set_state)
          if (state === undefined) {  // toggle
              if (this.interval === null) {
                  this.start();
@@ -138,25 +174,28 @@ Simulator.prototype = {
          }
      },
     next : function (p) {
-        var now_ms = Date.now();
-        var dt0 = (now_ms - this.time_ms)/1000;
-        var dt1 = (this.time_ms - this.prev_time_ms)/1000;
-        this.prev_time_ms = this.time_ms;
-        this.time_ms = now_ms;
-        dt0 = this.delta_t;
-        var new_X = this.callback(this.t, dt0, this.args, this.X, this);
+        var dt0 = this.delta_t;
+        var dt1 = this.delta_t;
+        if (this._use_real_time) { // Ajouté le 14/03/2020 A tester
+            var now_ms = Date.now();
+            dt0 = (now_ms - this.time_ms)/1000;
+            dt1 = (this.time_ms - this.prev_time_ms)/1000;
+            this.prev_time_ms = this.time_ms;
+            this.time_ms = now_ms;
+        }
+        var X_derivative = this.callback(this.t, dt0, this.args, this.X, this);
         var i;
-        for (i=0 ; i < new_X.length ; i++) { // recopie des états
+        for (i=0 ; i < X_derivative.length ; i++) { // recopie des états
             this.prev_X[i] = this.X[i];
         }        
         for (i=0 ; i < this.cont_states ; i++) { // Euler sur les états continus
-            this.X[i] += dt0 * new_X[i];
+            this.X[i] += dt0 * X_derivative[i];
         }
         // TODO: implement also an Adams–Bashforth method (or equivalent with variable step size)
         // Ref: https://fr.wikipedia.org/wiki/M%C3%A9thodes_d%27Adams-Bashforth
         // Ref: http://lucan.me.jhu.edu/wiki/index.php/Second-order_variable_time_step_Adams-Bashforth_method
-        for (i=this.cont_states ; i < new_X.length ; i++) { // recopie des états discrets
-            this.X[i] = new_X[i];
+        for (i=this.cont_states ; i < X_derivative.length ; i++) { // recopie des états discrets
+            this.X[i] = X_derivative[i];
         }
         if (this._replace_vect) {
             var idx;
