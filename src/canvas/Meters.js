@@ -178,6 +178,7 @@ root.DigitalMeter.prototype = root._block_xtend({
         this.color = root.getOpts(config, "color", "black");
         this.fill = root.getOpts(config, "fill", null);
         this.stroke = root.getOpts(config, "stroke", null);
+        this.base = null;
         
         this.group = new Konva.Group();
         
@@ -220,6 +221,14 @@ root.DigitalMeter.prototype = root._block_xtend({
     setval: function (v) {
         this.text.setText(sprintf(this.format, v));
         this.layer.draw();
+    },
+    setfill: function (v) {
+        if (this.base) {
+            this.base.fill(v);
+        }
+    },
+    setcolor: function (v) {
+        this.text.fill(v);
     },
 });
 
