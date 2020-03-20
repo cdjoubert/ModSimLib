@@ -1,6 +1,6 @@
 [Dolphin]
 PreviewsShown=true
 SortOrder=1
-SortRole=date
-Timestamp=2018,4,4,13,27,53
-Version=3
+SortRole=modificationtime
+Timestamp=2020,3,20,18,36,4
+Version=4

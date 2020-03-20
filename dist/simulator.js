@@ -450,6 +450,15 @@ root.copyObjectFields = function(src, dst, fieldNamesArray) {
 
 
 
+
+
+return root;
+}) ($GL || {}); // Fin de la "Immediately-Invoked Function Expression" (IIFE)
+
+
+
+var $GL = (function(root) {
+
 /*********************** Series *************************************/
 
 /*
@@ -476,7 +485,7 @@ root.Series = function (opt) {
     this.def_opt("p", null); // default parameters for function call
     this.x1 = null; // previous x and previous difference with fct2
     this.d1 = null;
-    this.prefill();
+    this._prefill();
 }
 
 root.Series.prototype = {
@@ -492,27 +501,30 @@ root.Series.prototype = {
         else
             this[name] = this.opt[name];
     },
-    prefill: function () {
+    _prefill: function () {
         if (this.points == null){ // If we didn't give points in opt
             var i;
-            this.points = [];
+            this.points = new Array(this.N);
             this.series = null;
             for (i = 0 ; i < this.N ; i++) {
                 var x = this.min + (i / (this.N - 1)) * (this.max - this.min);
-                this.points.push(x); // Prefill points
+                this.points[i] = x; // Prefill points
             }
         }
     },
-    prefill_series: function (fct, p) {
-        this.series = [];
-        var y = fct(this.points[0], p);
-        var number_of_series = (Array.isArray(y)) ? y.length : 1;
+    _prefill_series: function(number_of_series) {
+        this.series = new Array(number_of_series);
         for (var j = 0 ; j < number_of_series ; j++) {
             this.series[j]=[];
             for (var i = 0 ; i < this.points.length ; i++) {
                 this.series[j][i] = [0, 0];
             }
         }
+    },
+    _prefill_series_from_function: function (fct, p) {
+        var y = fct(this.points[0], p);
+        var number_of_series = (Array.isArray(y)) ? y.length : 1;
+        this._prefill_series(number_of_series);
     },
     compute: function (fct, p) { // compute function on series with parameter p
         if (fct == null && p == null){ // if we don't give anything, get the default function and parameters
@@ -526,7 +538,7 @@ root.Series.prototype = {
             p = this.p;
         } // else : fct AND p are given. Nothing to do
         if (this.series == null) { // If series not initialized yet
-            this.prefill_series(fct, p);
+            this._prefill_series_from_function(fct, p);
         }
         for (var i = 0 ; i < this.points.length ; i++) {
             var x = this.points[i];
@@ -537,6 +549,40 @@ root.Series.prototype = {
                 }
             } else {
                 this.series[0][i] = [x, y];
+            }
+        }
+    },
+    // Uses a vector v instead of function.
+    // n : optionnal. gives index in each element of v (if v is a vector of vectors)
+    from_vector: function (v, n) {
+        if (this.series == null) { // If series not initialized yet
+            var num_series;
+            if (typeof(v[0]) === 'number') {
+                num_series = 1;
+            } else if (n === undefined) { // On prend v dans sa totalité
+                num_series = v[0].length;
+            } else if (typeof(n) === 'number') {  // On a donné un indice unique
+                num_series = 1;
+            } else { // n est un tableau d'indexes
+                num_series = n.length;
+            }
+            this._prefill_series(num_series);
+        }
+        for (var i = 0 ; i < this.points.length ; i++) {
+            var x = this.points[i];
+            var y = v[i];
+            if (typeof(y) === 'number') {  // v est un vecteru de scalaires
+                this.series[0][i] = [x, y];
+            } else if (n === undefined) { // On prend v dans sa totalité
+                for (var j = 0 ; j < y.length ; j++) {
+                    this.series[j][i] = [x, y[j]];
+                }
+            } else if (typeof(n) === 'number') {  // On donne un indice unique
+                this.series[0][i] = [x, y[n]];
+            } else { // n est un tableau d'indexes 
+                for (var j = 0 ; j < n.length ; j++) {
+                    this.series[j][i] = [x, y[n[j]]];
+                }
             }
         }
     },
@@ -563,10 +609,10 @@ root.Series.prototype = {
     },
 }
 
-
-
+ 
 return root;
-}) ($GL || {}); // Fin de la "Immediately-Invoked Function Expression" (IIFE)
+}) ($GL || {});
+
 
 
 var $GL = (function(root) {

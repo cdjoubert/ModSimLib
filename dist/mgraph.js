@@ -64,123 +64,11 @@ root.copyObjectFields = function(src, dst, fieldNamesArray) {
 
 
 
-/*********************** Series *************************************/
-
-/*
- * Generate series for graphs
- * 
- * Permettre pour une fonction de renvoyer un vecteur, ce qui crée autant de séries de points que
- * d'éléments dans le vecteur.
- * 
- * y = fct(x, p)
- * the function may return a vector (y)
- * 
- * Ajouter :
- *  * lien direct avec graphiques.
- */
-
-root.Series = function (opt) {
-    this.opt = opt;
-    this.series = null;
-    this.def_opt("points", null); // Points can be fixed (vector given)
-    this.def_opt("N", 100); // Nb of points
-    this.def_opt("min", 0); // Min value for function x
-    this.def_opt("max", 100); // Max value for function x
-    this.def_opt("fct", function (x, p) {return x;}); // function to be calculated for each point with param p
-    this.def_opt("p", null); // default parameters for function call
-    this.x1 = null; // previous x and previous difference with fct2
-    this.d1 = null;
-    this.prefill();
-}
-
-root.Series.prototype = {
-    def_opt: function (name, default_value) {
-        /*
-        * Get element of this.opt whose name is "name"
-        * If this.opt is undefined, or does not contain "name"
-        * default_value is used instead
-        */
-        
-        if (this.opt === undefined || this.opt[name] === undefined)
-            this[name] = default_value;
-        else
-            this[name] = this.opt[name];
-    },
-    prefill: function () {
-        if (this.points == null){ // If we didn't give points in opt
-            var i;
-            this.points = [];
-            this.series = null;
-            for (i = 0 ; i < this.N ; i++) {
-                var x = this.min + (i / (this.N - 1)) * (this.max - this.min);
-                this.points.push(x); // Prefill points
-            }
-        }
-    },
-    prefill_series: function (fct, p) {
-        this.series = [];
-        var y = fct(this.points[0], p);
-        var number_of_series = (Array.isArray(y)) ? y.length : 1;
-        for (var j = 0 ; j < number_of_series ; j++) {
-            this.series[j]=[];
-            for (var i = 0 ; i < this.points.length ; i++) {
-                this.series[j][i] = [0, 0];
-            }
-        }
-    },
-    compute: function (fct, p) { // compute function on series with parameter p
-        if (fct == null && p == null){ // if we don't give anything, get the default function and parameters
-            fct = this.fct;
-            p = this.p;
-        } else if (p == null && !(fct && fct.constructor && fct.call && fct.apply)) {
-            // ( see: undescore.js / isFunction). If one parameter is given, and it is not a function => parameter
-            p =fct;
-            fct = this.fct;
-        } else if (p == null) { // fct is acually a function, but no paramterer given
-            p = this.p;
-        } // else : fct AND p are given. Nothing to do
-        if (this.series == null) { // If series not initialized yet
-            this.prefill_series(fct, p);
-        }
-        for (var i = 0 ; i < this.points.length ; i++) {
-            var x = this.points[i];
-            var y = this.fct(x, p);
-            if (Array.isArray(y)) {
-                for (var j = 0 ; j < y.length ; j++) {
-                    this.series[j][i] = [x, y[j]];
-                }
-            } else {
-                this.series[0][i] = [x, y];
-            }
-        }
-    },
-    intersect: function (s1, s2) { // detect intersections between series s1 and s2
-        var intersections =  new Array();
-        var x1, y1, d1, x2, y2, d2; // abscissa and differences
-        var x0, y0; // coordinate of intersects
-        x1 = this.points[0];
-        d1 = this.series[s1][0][1] - this.series[s2][0][1]; // difference between first values
-        for (var i = 1 ; i < this.points.length ; i++) {
-            d2 = this.series[s1][i][1] -  this.series[s2][i][1];
-            x2 = this.points[i];
-            if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) { // crossing detected
-                y1 = this.series[s1][i-1][1];
-                y2 = this.series[s1][i][1];
-                x0 = (d1*x2 - d2*x1) / (d1 - d2);
-                y0 = y1 + (x0 - x1) * (y2 - y1) / (x2 - x1);
-                intersections.push([x0, y0]);
-            }
-            x1 = x2;
-            d1 = d2;
-        }
-        return intersections;
-    },
-}
-
 
 
 return root;
 }) ($GL || {}); // Fin de la "Immediately-Invoked Function Expression" (IIFE)
+
 
 
 var $GL = (function(root) {
@@ -342,6 +230,164 @@ root.DynGraph.prototype = {
  
 return root;
 }) ($GL || {});
+
+
+var $GL = (function(root) {
+
+/*********************** Series *************************************/
+
+/*
+ * Generate series for graphs
+ * 
+ * Permettre pour une fonction de renvoyer un vecteur, ce qui crée autant de séries de points que
+ * d'éléments dans le vecteur.
+ * 
+ * y = fct(x, p)
+ * the function may return a vector (y)
+ * 
+ * Ajouter :
+ *  * lien direct avec graphiques.
+ */
+
+root.Series = function (opt) {
+    this.opt = opt;
+    this.series = null;
+    this.def_opt("points", null); // Points can be fixed (vector given)
+    this.def_opt("N", 100); // Nb of points
+    this.def_opt("min", 0); // Min value for function x
+    this.def_opt("max", 100); // Max value for function x
+    this.def_opt("fct", function (x, p) {return x;}); // function to be calculated for each point with param p
+    this.def_opt("p", null); // default parameters for function call
+    this.x1 = null; // previous x and previous difference with fct2
+    this.d1 = null;
+    this._prefill();
+}
+
+root.Series.prototype = {
+    def_opt: function (name, default_value) {
+        /*
+        * Get element of this.opt whose name is "name"
+        * If this.opt is undefined, or does not contain "name"
+        * default_value is used instead
+        */
+        
+        if (this.opt === undefined || this.opt[name] === undefined)
+            this[name] = default_value;
+        else
+            this[name] = this.opt[name];
+    },
+    _prefill: function () {
+        if (this.points == null){ // If we didn't give points in opt
+            var i;
+            this.points = new Array(this.N);
+            this.series = null;
+            for (i = 0 ; i < this.N ; i++) {
+                var x = this.min + (i / (this.N - 1)) * (this.max - this.min);
+                this.points[i] = x; // Prefill points
+            }
+        }
+    },
+    _prefill_series: function(number_of_series) {
+        this.series = new Array(number_of_series);
+        for (var j = 0 ; j < number_of_series ; j++) {
+            this.series[j]=[];
+            for (var i = 0 ; i < this.points.length ; i++) {
+                this.series[j][i] = [0, 0];
+            }
+        }
+    },
+    _prefill_series_from_function: function (fct, p) {
+        var y = fct(this.points[0], p);
+        var number_of_series = (Array.isArray(y)) ? y.length : 1;
+        this._prefill_series(number_of_series);
+    },
+    compute: function (fct, p) { // compute function on series with parameter p
+        if (fct == null && p == null){ // if we don't give anything, get the default function and parameters
+            fct = this.fct;
+            p = this.p;
+        } else if (p == null && !(fct && fct.constructor && fct.call && fct.apply)) {
+            // ( see: undescore.js / isFunction). If one parameter is given, and it is not a function => parameter
+            p =fct;
+            fct = this.fct;
+        } else if (p == null) { // fct is acually a function, but no paramterer given
+            p = this.p;
+        } // else : fct AND p are given. Nothing to do
+        if (this.series == null) { // If series not initialized yet
+            this._prefill_series_from_function(fct, p);
+        }
+        for (var i = 0 ; i < this.points.length ; i++) {
+            var x = this.points[i];
+            var y = this.fct(x, p);
+            if (Array.isArray(y)) {
+                for (var j = 0 ; j < y.length ; j++) {
+                    this.series[j][i] = [x, y[j]];
+                }
+            } else {
+                this.series[0][i] = [x, y];
+            }
+        }
+    },
+    // Uses a vector v instead of function.
+    // n : optionnal. gives index in each element of v (if v is a vector of vectors)
+    from_vector: function (v, n) {
+        if (this.series == null) { // If series not initialized yet
+            var num_series;
+            if (typeof(v[0]) === 'number') {
+                num_series = 1;
+            } else if (n === undefined) { // On prend v dans sa totalité
+                num_series = v[0].length;
+            } else if (typeof(n) === 'number') {  // On a donné un indice unique
+                num_series = 1;
+            } else { // n est un tableau d'indexes
+                num_series = n.length;
+            }
+            this._prefill_series(num_series);
+        }
+        for (var i = 0 ; i < this.points.length ; i++) {
+            var x = this.points[i];
+            var y = v[i];
+            if (typeof(y) === 'number') {  // v est un vecteru de scalaires
+                this.series[0][i] = [x, y];
+            } else if (n === undefined) { // On prend v dans sa totalité
+                for (var j = 0 ; j < y.length ; j++) {
+                    this.series[j][i] = [x, y[j]];
+                }
+            } else if (typeof(n) === 'number') {  // On donne un indice unique
+                this.series[0][i] = [x, y[n]];
+            } else { // n est un tableau d'indexes 
+                for (var j = 0 ; j < n.length ; j++) {
+                    this.series[j][i] = [x, y[n[j]]];
+                }
+            }
+        }
+    },
+    intersect: function (s1, s2) { // detect intersections between series s1 and s2
+        var intersections =  new Array();
+        var x1, y1, d1, x2, y2, d2; // abscissa and differences
+        var x0, y0; // coordinate of intersects
+        x1 = this.points[0];
+        d1 = this.series[s1][0][1] - this.series[s2][0][1]; // difference between first values
+        for (var i = 1 ; i < this.points.length ; i++) {
+            d2 = this.series[s1][i][1] -  this.series[s2][i][1];
+            x2 = this.points[i];
+            if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) { // crossing detected
+                y1 = this.series[s1][i-1][1];
+                y2 = this.series[s1][i][1];
+                x0 = (d1*x2 - d2*x1) / (d1 - d2);
+                y0 = y1 + (x0 - x1) * (y2 - y1) / (x2 - x1);
+                intersections.push([x0, y0]);
+            }
+            x1 = x2;
+            d1 = d2;
+        }
+        return intersections;
+    },
+}
+
+ 
+return root;
+}) ($GL || {});
+
 
 
 var $GL = (function(root) {
