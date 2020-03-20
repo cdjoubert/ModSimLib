@@ -1,6 +1,6 @@
 {
   "name": "modelsim",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Instructional simulation library for Javascript",
   "main": "modelsim.js",
   "scripts": {
