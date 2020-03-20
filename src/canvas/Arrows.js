@@ -221,7 +221,7 @@ root.ArcArrow.prototype = root._block_xtend({
         var x1=x0+radius*Math.cos((Math.PI/180)*endAngle);
         var y1=y0+radius*Math.sin((Math.PI/180)*endAngle);
         var visible=this.visible;
-        if (Math.abs(endAngle-startAngle)<8) {
+        if (Math.abs(endAngle-startAngle)<8 || isNaN(startAngle) || isNaN(endAngle)) {
             visible=false;
         }
         if (Math.sin((Math.PI/180)*(endAngle-startAngle))>0) {

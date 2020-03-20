@@ -122,7 +122,7 @@ Simulator.prototype = {
         window.clearInterval(this.interval);
         this.interval = null;
     },
-     set_state: function(state) {
+     running: function(state) {  // Name changed 14/03/2020 (before : set_state)
          if (state === undefined) {  // toggle
              if (this.interval === null) {
                  this.start();

@@ -268,6 +268,16 @@ return root;
 
 var $ML = (function(root) {
 
+function normalize(angle) { // make sure -180°<angle<=+180° 
+    while (angle > 180.0) {
+        angle -= 360.0;
+    }
+    while (angle <= -180.0) {
+        angle += 360.0;
+    }
+    return angle;
+}   
+
 root.Arrow = function (config) {
     this._register(config, "Arrow", [], []);
 } 
@@ -303,7 +313,7 @@ root.Arrow.prototype = root._block_xtend({
         this.setPoints(x0,y0,x1,y1);
     },
     reverseY: true, // Inverse les coordonnées en Y pour ressembler à un repère normal
-    setPoints: function(x0,y0,x1,y1) {
+    setPoints: function(x0,y0,x1,y1) { // TODO: change CamelCase to snake_case
         this.x0 = x0;
         this.y0 = y0;
         this.x1 = x1;
@@ -335,6 +345,12 @@ root.Arrow.prototype = root._block_xtend({
             this.head.setRotation(a);
         }
     },
+    set_origin: function(x, y) { // Sets the origin of the arrow
+        this.setPoints(x, y, this.x1, this.y1); // TODO: change to snake_case
+    },
+    set_destination: function(x, y) {  // Sets the destination of the arrow
+        this.setPoints(this.x0, this.y0, x, y);
+    },
     translate_to: function(pos) {
         if (typeof pos.block_class != "undefined" && pos.block_class == "Arrow") {
             var x = pos.x1; // on récupère l'extrémité de l'autre fleche
@@ -350,7 +366,7 @@ root.Arrow.prototype = root._block_xtend({
     get_angle:function() {
         var dx = this.x1 - this.x0;
         var dy = this.y1 - this.y0;
-        if (! this.is_not_visible) { // La fleche est-elle visible ?
+        if (! this.is_not_visible && ! isNaN(dx) && ! isNaN(dy)) { // La fleche est-elle visible ? 
             var a = (180/Math.PI)*Math.atan2(dy, dx);
             this.angle = a;
         } else {
@@ -364,7 +380,7 @@ root.Arrow.prototype = root._block_xtend({
         return Math.sqrt(dx*dx + dy*dy);
     },
     set_angle:function(angle) {
-        this.angle = angle;
+        this.angle = normalize(angle);
         angle *= (Math.PI/180);
         var l = this.get_length();
         var x1 = this.x0 + l*Math.cos(angle);
@@ -432,14 +448,14 @@ root.ArcArrow.prototype = root._block_xtend({
     setAll: function (x0,y0,startAngle,endAngle,radius) {
         this.x0=x0;
         this.y0=y0;
-        this.startAngle = startAngle;
-        this.endAngle = endAngle;
+        this.startAngle = normalize(startAngle);
+        this.endAngle = normalize(endAngle);
         this.radius = radius;
         this.calc();
     },
     setAngles: function (startAngle,endAngle) {
-        this.startAngle = startAngle;
-        this.endAngle = endAngle;
+        this.startAngle = normalize(startAngle);
+        this.endAngle = normalize(endAngle);
         this.calc();
     },
     setRadius: function (radius) {
@@ -469,7 +485,7 @@ root.ArcArrow.prototype = root._block_xtend({
         var x1=x0+radius*Math.cos((Math.PI/180)*endAngle);
         var y1=y0+radius*Math.sin((Math.PI/180)*endAngle);
         var visible=this.visible;
-        if (Math.abs(endAngle-startAngle)<8) {
+        if (Math.abs(endAngle-startAngle)<8 || isNaN(startAngle) || isNaN(endAngle)) {
             visible=false;
         }
         if (Math.sin((Math.PI/180)*(endAngle-startAngle))>0) {
@@ -1836,6 +1852,105 @@ root.SwitchGroup.prototype={
         }
     },
 }
+
+
+return root;
+}) ($ML || {});
+
+
+/****************************************************************************
+ *                   Meters / Tapemeters ... 
+ ****************************************************************************/
+
+var $ML = (function(root) {
+    
+root._StripElem = function (length, width, value_delta, base_point) {
+    this.length = length;
+    this.width = width;
+    this.value_delta = value_delta;
+    this.base_point = base_point;
+    this.value_index = 0;
+    this.value_rem = 0;  // Value remainder
+    this.group = null; // Konva group
+    this.text = null; // Konva text
+};
+
+root._StripElem.prototype = {
+    set_index : function (value, pixel_shift) {
+        if (pixel_shift !== undefined) {
+            value = value - (pixel_shift/this.length) * this.value_delta;
+        }
+        var ratio = value / this.value_delta;
+        this.value_index = Math.floor(ratio);
+        this.value_rem = value - (this.value_index * this.value_delta);
+        this.length_shift = -this.value_rem * this.length / this.value_delta;
+    },
+    conv : funtion (v) { // Convertit les coordonnées placées dans un vecteur
+        var vout = new Array(v.length);
+        for (var i = 0 ; i < v.length ; i += 2) {
+            vout[i] = v[i];
+            vout[i+1] = -v[i+1];
+        }
+        return vout;
+    },
+    draw : function (layer) {
+        this.group = new Konva.Group();
+        var tpos = this.conv([0, 5]);
+        this.text = new Konva.Text({
+                x: tpos[0],
+                y: tpos[1],
+                text: '999',
+                fontSize: 14,
+                fontFamily: 'monospace',
+                fill: 'black',
+                align: 'left'
+            });
+        this.group.add(this.text);
+        var line = new Konva.Line({
+            points: this.conv([0, 0, this.width, 0, this.width, this.length]),
+            stroke: 'red',
+        });
+        this.group.add(line);
+        layer.add(this.group);
+    },
+    update_text : function () {
+        if (this.text) {
+            this.text.setText(sprintf('%f', this.value_index * this.value_delta));
+        }
+    },
+    move_to_pos : function (shift_index) {
+        if (shift_index === undefined) {
+            shift_index = 0;
+        }
+        var d = this.value_rem * this.length / this.value_delta;
+        var pts = this.conv([0, d]);
+        this.group.setX(this.base_point[0] + pts[0]);
+        this.group.setY(this.base_point[1] + pts[1]);
+    },
+};
+        
+
+root.TapeMeter = function(config) {
+    /*
+     * Crée un appareil de mesure sous forme de bande verticale
+     * 
+     */
+    config = this._register(config, "TapeMeter", ["value"], []);
+}
+
+root.TapeMeter.prototype = root._block_xtend({ 
+    _init: function(config){
+        this.group = new Konva.Group();
+        this.max = root.getOpts(config, "max", 100);
+    },
+    setval: function (v) {
+    },
+    addToLayer : function (layer) {
+        this.layer = layer;
+        layer.add(this.group);
+    },
+});
+
 
 
 return root;

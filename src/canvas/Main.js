@@ -188,7 +188,7 @@ root._xtend=function(old_proto, new_proto) {
  * Specialized inheritance for the core library
  */
 root._block_xtend=function(new_proto) {
-        root._xtend(root._block.prototype, new_proto);
+        var proto_base = root._xtend(root._block.prototype, new_proto);
         return proto_base;
 };
 

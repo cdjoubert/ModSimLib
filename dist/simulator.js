@@ -418,6 +418,10 @@ root.copyObjectFields = function(src, dst, fieldNamesArray) {
  * 
  * Permettre pour une fonction de renvoyer un vecteur, ce qui crée autant de séries de points que
  * d'éléments dans le vecteur.
+ * 
+ * y = fct(x, p)
+ * the function may return a vector (y)
+ * 
  * Ajouter :
  *  * lien direct avec graphiques.
  */
