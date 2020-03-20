@@ -67,9 +67,6 @@ root.CarGraph.prototype = {
         this.plot.draw();
     }
 }
-
-}) (this); // End of the "Immediately-Invoked Function Expression" (IIFE)
-
     
  
 return root;

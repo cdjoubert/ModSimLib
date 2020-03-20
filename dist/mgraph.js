@@ -192,17 +192,14 @@ var $GL = (function(root) {
  * 
  */
 
-root.CharacGraph = function (placeholder, config, plots){
+root.CarGraph = function (placeholder, config, plots){
     this.initialized = false;
     this.placeholder = placeholder;
     this.plot=null;
-    this.duration = root.getOpts(config, "duration", 1);
-    this.xaxis = root.getOpts(config, "xaxis", {});
-    this.yaxis = root.getOpts(config, "yaxis", {});
-    this.legend = root.getOpts(config, "legend", {});
-    this.xmin = root.getOpts(config, "xmin", null);  // definit une serie de points suivant les abscisses : valeur min
-    this.xmax = root.getOpts(config, "xmax", null);  // valeur max
-    this.xnum = root.getOpts(config, "xnum", null);  // nombre de points
+    this.xaxis = $GL.getOpts(config, "xaxis", {});
+    this.yaxis = $GL.getOpts(config, "yaxis", {});
+    this.legend = $GL.getOpts(config, "legend", {});
+    var interactive = $GL.getOpts(config, "interactive", false);  // if can pan
     this.plots = plots;
     this.series = [];
     this.plot_options={
@@ -222,22 +219,23 @@ root.CharacGraph = function (placeholder, config, plots){
     xaxis: this.xaxis,
     yaxis: this.yaxis,
     legend: this.legend,
+    pan:{interactive:interactive},
     };
     this._init();
 }
 
-root.CharacGraph.prototype = {
+root.CarGraph.prototype = {
     _init: function() {
         this.nplots = this.plots.length;
         this.series = [];
         var series = [];
         for (var i = 0 ; i < this.nplots ; i++) {
             var elem = {
-                lines: {fill:false},
+                lines: {fill:false, show:true},
                 points: {show:false},
                 data: [],
             };
-            root.copyObjectFields(this.plots[i], elem, ["color", "label", "lines", "points", "data"]);
+            $GL.copyObjectFields(this.plots[i], elem, ["color", "label", "lines", "points", "data"]);
             this.series.push(elem);
         }
         this.plot = $.plot(this.placeholder, this.series, this.plot_options);
@@ -256,6 +254,7 @@ root.CharacGraph.prototype = {
  
 return root;
 }) ($GL || {});
+
 
 
 var $GL = (function(root) {

@@ -188,7 +188,7 @@ root._xtend=function(old_proto, new_proto) {
  * Specialized inheritance for the core library
  */
 root._block_xtend=function(new_proto) {
-        root._xtend(root._block.prototype, new_proto);
+        var proto_base = root._xtend(root._block.prototype, new_proto);
         return proto_base;
 };
 
@@ -262,6 +262,7 @@ root.dump_blocks = function () {
 
 return root;
 }) ($ML || {}); // Fin de la "Immediately-Invoked Function Expression" (IIFE)
+
 
 
 // Class "Arrow"
@@ -1149,6 +1150,7 @@ root.DigitalMeter.prototype = root._block_xtend({
         this.color = root.getOpts(config, "color", "black");
         this.fill = root.getOpts(config, "fill", null);
         this.stroke = root.getOpts(config, "stroke", null);
+        this.base = null;
         
         this.group = new Konva.Group();
         
@@ -1191,6 +1193,14 @@ root.DigitalMeter.prototype = root._block_xtend({
     setval: function (v) {
         this.text.setText(sprintf(this.format, v));
         this.layer.draw();
+    },
+    setfill: function (v) {
+        if (this.base) {
+            this.base.fill(v);
+        }
+    },
+    setcolor: function (v) {
+        this.text.fill(v);
     },
 });
 
@@ -1313,6 +1323,7 @@ root.AnalogMeter.prototype = root._block_xtend({
 
 return root;
 }) ($ML || {});
+
 
 /****************************************************************************
  *                   Polyline
@@ -1885,7 +1896,7 @@ root._StripElem.prototype = {
         this.value_rem = value - (this.value_index * this.value_delta);
         this.length_shift = -this.value_rem * this.length / this.value_delta;
     },
-    conv : funtion (v) { // Convertit les coordonnées placées dans un vecteur
+    conv : function (v) { // Convertit les coordonnées placées dans un vecteur
         var vout = new Array(v.length);
         for (var i = 0 ; i < v.length ; i += 2) {
             vout[i] = v[i];

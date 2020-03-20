@@ -9,7 +9,7 @@ var plugins = require('gulp-load-plugins')(); // tous les plugins de package.jso
 
 var concat = require('gulp-concat');
 var rename = require('gulp-rename');
-var uglify = require('gulp-uglify');
+var uglify = require('gulp-uglify-es').default;
 
 
 
@@ -35,7 +35,9 @@ gulp.task('canvas', function() {
     .pipe(concat(dest_name))
     .pipe(gulp.dest(destination))
     .pipe(rename(dest_name_min))
-    .pipe(uglify())
+    .pipe(uglify().on('error', function(e){
+            console.log(e);
+         }))
     .pipe(gulp.dest(destination));
 });
 
@@ -50,7 +52,9 @@ gulp.task('plot', function() {
     .pipe(concat(dest_name))
     .pipe(gulp.dest(destination))
     .pipe(rename(dest_name_min))
-    .pipe(uglify())
+    .pipe(uglify().on('error', function(e){
+            console.log(e);
+         }))
     .pipe(gulp.dest(destination));
 });
 
@@ -65,7 +69,9 @@ gulp.task('simulator', function() {
     .pipe(concat(dest_name))
     .pipe(gulp.dest(destination))
     .pipe(rename(dest_name_min))
-    .pipe(uglify())
+    .pipe(uglify().on('error', function(e){
+            console.log(e);
+         }))
     .pipe(gulp.dest(destination));
 });
 
